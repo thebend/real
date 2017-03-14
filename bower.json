@@ -1,0 +1,32 @@
+{
+  "name": "BD Estate",
+  "description": "British Columbia real estate map visualizations",
+  "main": "index.html",
+  "keywords": [
+    "real",
+    "estate",
+    "map",
+    "d3",
+    "terrace",
+    "british",
+    "columbia"
+  ],
+  "authors": [
+    "Benjamin Davidson"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^3.1.1",
+    "bootstrap": "^3.3.7",
+    "d3": "^4.7.3"
+  }
+}

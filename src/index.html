@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Terrace Data Explorer</title>
+    <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="../bower_components/jquery/dist/jquery.js"></script>
+    <script src="../bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="../bower_components/d3/d3.js"></script>
+    <script src="map.js"></script>
+</head>
+
+<body>
+    <button class="btn btn-default" onclick="resize();" id="zoomout">Zoom Out</button>
+    <section id="map"><svg></svg></section>
+
+    <section id="histogram"><svg></svg></section>
+
+    <section id="sidebar">
+        <section id="controls">
+            <div class="form-group has-success has-feedback" id="search">
+                <div class="input-group">
+                    <span class="input-group-addon">Address</span>
+                    <input type="search" class="form-control" oninput="updateAddressFilter();" >
+                </div>
+                <span class="glyphicon glyphicon-ok form-control-feedback"></span>
+            </div>
+
+            <div id="scale">
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-lg btn-default active" onclick="setNewColorScale(d3.scaleLinear());">
+                        <input type="radio" name="linear" id="linear" checked> Linear
+                    </label>
+                    <label class="btn btn-lg btn-default" onclick="setNewColorScale(d3.scaleLog());">
+                        <input type="radio" name="log" id="log"> Logarithmic
+                    </label>
+                </div>
+            </div>
+
+            <div id="color">
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-lg btn-default active" onclick="setScaleColor('simple');">
+                        <input type="radio" name="simple" id="simple" checked> Simple Color
+                    </label>
+                    <label class="btn btn-lg btn-default" onclick="setScaleColor('viridis');">
+                        <input type="radio" name="viridis" id="viridis"> Complex Color
+                    </label>
+                </div>
+            </div>
+
+            <div id="zones">
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default active" id="residential" onclick="toggleFilter(this);">
+                        <input type="checkbox" name="residential" checked> Resid
+                    </label>
+                    <label class="btn btn-default active" id="commercial" onclick="toggleFilter(this);">
+                        <input type="checkbox" name="commercial" checked> Comm
+                    </label>
+                    <label class="btn btn-default active" id="industrial" onclick="toggleFilter(this);">
+                        <input type="checkbox" name="industrial" checked> Ind
+                    </label>
+                    <label class="btn btn-default active" id="agricultural" onclick="toggleFilter(this);">
+                        <input type="checkbox" name="agricultural" checked> Agri
+                    </label>
+                    <label class="btn btn-default active" id="public" onclick="toggleFilter(this);">
+                        <input type="checkbox" name="public" checked> Public
+                    </label>
+                </div>
+            </div>
+
+            <div id="metric" class="btn-group-vertical" data-toggle="buttons">
+                <label class="btn btn-lg btn-default btn-block" id="land-value"
+                    onclick="setNewColorParameters(getLandValueDensity, 'linear', ['rgb(191,191,191)', 'rgb(0,191,0)']);">
+                    <input type="radio" name="land-value"> Land Value
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="age"
+                    onclick="setNewColorParameters(getAge, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']);">
+                    <input type="radio" name="age"> Building Age
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="total-value"
+                    onclick="setNewColorParameters(function(d) { return d.total_assessed_value; }, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']);">
+                    <input type="radio" name="total-value"> Total $
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="change-building"
+                    onclick="doBuildingValueChangeColor();">
+                    <input type="radio" name="change-value"> &Delta; Building $
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="change-land"
+                    onclick="doLandValueChangeColor();">
+                    <input type="radio" name="change-value"> &Delta; Land $
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="zone-type" onclick="doZoneColor();">
+                    <input type="radio" name="zone-type"> Zones
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="bedroom"
+                    onclick="setNewColorParameters(getBedrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)']);">
+                    <input type="radio" name="zone-type"> # Bedrooms
+                </label>
+                <label class="btn btn-lg btn-default btn-block" id="bathroom"
+                    onclick="setNewColorParameters(getBathrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)']);">
+                    <input type="radio" name="zone-type"> # Bathrooms
+                </label>
+            </div>
+        </section>
+
+        <article id="tooltip">
+            <h2 id="address"></h2>
+            <p id="pid"><strong>PID:</strong> <span></span></p>
+            <table id="assessed-values">
+                <thead>
+                    <tr><th></th><th>Current</th><th>Previous</th></tr>
+                </thead>
+                <tbody>
+                    <tr><th>Land</th><td><span id="currentland"></span> <span id="landtrend" class="glyphicon"></span></td><td id="previousland"></td></tr>
+                    <tr><th>Building</th><td><span id="currentbuilding"></span> <span id="buildingtrend" class="glyphicon"></span></td><td id="previousbuilding"></td></tr>
+                    <tr><th>Total</th><td><span id="currenttotal"></span> <span id="totaltrend" class="glyphicon"></span></td><td id="previoustotal"></td></tr>
+                </tbody>
+            </table>
+            <section id="details">
+                <p id="yearbuilt"><strong>Year Built:</strong> <span></span></p>
+                <p id="zoning"><strong>Zoning:</strong> <span></span></p>
+                <p id="bedrooms"><strong>Bedrooms:</strong> <span></span></p>
+                <p id="bathrooms"><strong>Bathrooms:</strong> <span></span></p>
+                <p id="carport"><strong>Carport:</strong> <span></span></p>
+                <p id="garage"><strong>Garage:</strong> <span></span></p>
+                <p id="area"><strong>Area:</strong> <span></span> m<sup>2</sup></p>
+            </section>
+        </article>
+    </section>
+</body>
+<script>
+    d3.csv('terrace.csv', displayData);
+</script>
+
+</html>

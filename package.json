@@ -1,0 +1,38 @@
+{
+  "name": "bd-estate",
+  "version": "1.0.0",
+  "description": "Real estate visualizer in D3 for the Terrace, British Columbia area",
+  "main": "gulpfile.js",
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-cdnizer": "^1.1.7",
+    "gulp-csso": "^2.0.0",
+    "gulp-less": "^3.3.0",
+    "gulp-typescript": "^3.1.5",
+    "gulp-uglify": "^2.1.0",
+    "pump": "^1.0.2",
+    "typescript": "^2.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thebend/bd-estate.git"
+  },
+  "keywords": [
+    "real",
+    "estate",
+    "d3",
+    "terrace",
+    "british",
+    "columbia"
+  ],
+  "author": "Benjamin Davidson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/thebend/bd-estate/issues"
+  },
+  "homepage": "https://github.com/thebend/bd-estate#readme"
+}
