@@ -6,6 +6,7 @@ interface Array<T> {
 }
 
 // https://beebole.com/pure/ - simple JavaScript template
+// https://www.sitepoint.com/overview-javascript-templating-engines/
 
 var map;
 var histogramSvg;
