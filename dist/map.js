@@ -1,3 +1,5 @@
+// https://beebole.com/pure/ - simple JavaScript template
+// https://www.sitepoint.com/overview-javascript-templating-engines/
 var map;
 var histogramSvg;
 var allData; // the entire data set, which can be filtered to affect mapData
@@ -343,10 +345,10 @@ function filterAddress() {
 }
 function getCurrentUISettings() {
     return {
-        "scale": $('#scale .active input')[0].name,
-        "color": $('#color .active input')[0].name,
-        "zones": $('#zones .active input').map(function (idx, n) { return n.name; }),
-        "metric": $('#metric .active input')[0].name,
+        "scale": $('#scale .active input')[0].getAttribute('name'),
+        "color": $('#color .active input')[0].getAttribute('name'),
+        "zones": $('#zones .active input').map(function (idx, n) { return n.getAttribute('name'); }),
+        "metric": $('#metric .active input')[0].getAttribute('name'),
         "zoom": null // take each polygon's backing data and find the domain and range
     };
 }

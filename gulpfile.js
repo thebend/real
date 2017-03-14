@@ -24,7 +24,7 @@ gulp.task('lib-build', function() {
     ]);
 });
 
-gulp.task('lib-test', function() {
+gulp.task('lib', function() {
     pump([
         gulp.src('bower_components/**'),
         gulp.dest('dist/bower_components/')
@@ -54,7 +54,7 @@ gulp.task('ts-build', function() {
     ]);
 });
 
-gulp.task('ts-test', function() {
+gulp.task('ts', function() {
     var tsProject = ts.createProject('tsconfig.json');
     pump([
         gulp.src('src/*.ts'),
@@ -70,7 +70,7 @@ gulp.task('assets', function() {
     ]);
 });
 
-gulp.task('default', [ 'lib-test', 'css', 'ts-test', 'assets' ]);
+gulp.task('default', [ 'lib', 'css', 'ts', 'assets' ]);
 gulp.task('build', [ 'lib-build', 'css', 'ts-build', 'assets' ]);
 
 // var less = require('gulp-less');

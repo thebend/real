@@ -10,6 +10,8 @@
     "jquery": "^3.1.1"
   },
   "devDependencies": {
+    "@types/d3": "^4.7.0",
+    "@types/jquery": "^2.0.41",
     "gulp": "^3.9.1",
     "gulp-cdnizer": "^1.1.7",
     "gulp-csso": "^2.0.0",
@@ -17,8 +19,10 @@
     "gulp-typescript": "^3.1.5",
     "gulp-uglify": "^2.1.0",
     "pump": "^1.0.2",
+    "tsd": "^0.6.5",
     "tslint": "^4.5.1",
-    "typescript": "^2.2.1"
+    "typescript": "^2.2.1",
+    "typings": "^2.1.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

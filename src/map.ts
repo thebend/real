@@ -1,6 +1,3 @@
-declare var $:any;
-declare var d3:any;
-
 interface Array<T> {
     find(predicate: (value: T, index: number, obj: Array<T>) => boolean, thisArg?: any): T;
 }
@@ -273,8 +270,8 @@ function resize(suggestedDomain) {
     map.selectAll('polygon').attr('points', getPoints);
 }
 var colorDataFunction;
-var colorData;
-var colorScale = d3.scaleLinear();
+var colorData: number[];
+var colorScale = d3.scaleLinear<any, any>();
 
 var isUpdatingUI = false;
 
@@ -383,10 +380,10 @@ function filterAddress() {
 
 function getCurrentUISettings() {
     return {
-        "scale": $('#scale .active input')[0].name,
-        "color": $('#color .active input')[0].name,
-        "zones": $('#zones .active input').map(function(idx, n) { return n.name; }),
-        "metric": $('#metric .active input')[0].name,
+        "scale": $('#scale .active input')[0].getAttribute('name'),
+        "color": $('#color .active input')[0].getAttribute('name'),
+        "zones": $('#zones .active input').map(function(idx, n) { return n.getAttribute('name'); }),
+        "metric": $('#metric .active input')[0].getAttribute('name'),
         "zoom": null // take each polygon's backing data and find the domain and range
     }
 }
@@ -452,7 +449,7 @@ function toggleFilter(btn) {
 var currentYear = new Date().getFullYear();
 var BAR_THICKNESS = 6;
 var legendPrecision = d3.format('.2f');
-function drawHistogram(data) {
+function drawHistogram(data: number[]) {
     var yearScale = d3.scaleLog().domain(d3.extent(data));
     var histogram = d3.histogram().thresholds(yearScale.ticks(20));
     var bins = histogram(data);
