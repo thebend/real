@@ -55,7 +55,7 @@ gulp.task('ts-build', function() {
 });
 
 gulp.task('ts-test', function() {
-    var tsProject = ts.createProject('tsconfig.json', {"target": "es6"});
+    var tsProject = ts.createProject('tsconfig.json');
     pump([
         gulp.src('src/*.ts'),
         tsProject(),

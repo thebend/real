@@ -1,7 +1,11 @@
-// import 'core-js/es6';
-
 declare var $:any;
 declare var d3:any;
+
+interface Array<T> {
+    find(predicate: (value: T, index: number, obj: Array<T>) => boolean, thisArg?: any): T;
+}
+
+// https://beebole.com/pure/ - simple JavaScript template
 
 var map;
 var histogramSvg;
@@ -37,8 +41,7 @@ var zones = [
     }
 ];
 function getZoneColor(d) {
-    // var zone = zones.find(function(z) { return z.codes.indexOf(d.zoning) > -1; });
-    var zone = zones.filter(z => z.codes.indexOf(d.zoning) > -1)[0];
+    var zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
     if (zone) return zone.color;
     return "lightgray";
 }
@@ -426,8 +429,7 @@ function render(settings) {
 function toggleFilter(btn) {
     btn = $(btn);
     var zoneTarget = btn.attr('id');
-    // var zoneCodes = zones.find(function(zone) { return zone.type == zoneTarget; }).codes;
-    var zoneCodes = zones.filter(z => z.type == zoneTarget)[0].codes;
+    var zoneCodes = zones.find(z => z.type == zoneTarget).codes;
     function isFilterZone(d) { return zoneCodes.indexOf(d.zoning) != -1; }
     function isNotFilterZone(d) { return !isFilterZone(d); }
     if (btn.hasClass('active')) {

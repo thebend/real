@@ -8,3 +8,5 @@
 * TypeScript complains about [].find() unless export target is ES6.  Looks like I have to implement my own solution?!  Or use core-js?
 * Found example that uses "import 'core-js/es6';" but I am exporting to CommonJS and that's for the server?
  * Must use webpack to bundle polyfill code instead.  See here: http://jamesknelson.com/using-es6-in-the-browser-with-babel-6-and-webpack/
+ * Or just include CDN link to ES6 polyfill file and set target to ES6?
+ * Or include CDN link to ES6 polyfill, include array.find interface in .ts, and set target to ES5?!  Yes!

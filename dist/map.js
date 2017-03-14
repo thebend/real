@@ -1,6 +1,3 @@
-"use strict";
-exports.__esModule = true;
-require("core-js/es6");
 var map;
 var histogramSvg;
 var allData; // the entire data set, which can be filtered to affect mapData
@@ -15,7 +12,7 @@ var zones = [
         "type": "agricultural",
         "codes": ['AR1', 'AR2'],
         // "color": "rgba(127,  0,  0, 0.5)"
-        "color": "darkred"
+        "color": "darkred",
     }, {
         "type": "commercial",
         "codes": ['C1', 'C1-A', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'ASC', 'GSC'],
@@ -34,8 +31,7 @@ var zones = [
     }
 ];
 function getZoneColor(d) {
-    // var zone = zones.find(function(z) { return z.codes.indexOf(d.zoning) > -1; });
-    var zone = zones.filter(function (z) { return z.codes.indexOf(d.zoning) > -1; })[0];
+    var zone = zones.find(function (z) { return z.codes.indexOf(d.zoning) > -1; });
     if (zone)
         return zone.color;
     return "lightgray";
@@ -392,8 +388,7 @@ function render(settings) {
 function toggleFilter(btn) {
     btn = $(btn);
     var zoneTarget = btn.attr('id');
-    // var zoneCodes = zones.find(function(zone) { return zone.type == zoneTarget; }).codes;
-    var zoneCodes = zones.filter(function (z) { return z.type == zoneTarget; })[0].codes;
+    var zoneCodes = zones.find(function (z) { return z.type == zoneTarget; }).codes;
     function isFilterZone(d) { return zoneCodes.indexOf(d.zoning) != -1; }
     function isNotFilterZone(d) { return !isFilterZone(d); }
     if (btn.hasClass('active')) {
