@@ -31,6 +31,8 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
 * [Webpack Getting Started](https://webpack.js.org/guides/get-started/)
 * [Replace bower dependencies with minified versions](http://stackoverflow.com/questions/16761272/how-to-configure-grunt-to-replace-bower-dependencies-by-its-minified-versions)
 * [Gulp CDNizer](https://www.npmjs.com/package/gulp-cdnizer)
+* [Linting TypeScript with Webpack](https://templecoding.com/blog/2016/04/07/linting-typescript-with-webpack/)
+* [DefinitelyTyped TypeScript type definition catalog](https://github.com/DefinitelyTyped/DefinitelyTyped)
 
 # Questions
 * Do I put my dev stuff into a subdirectory?  Looks like /app/ and /dist/ folders are common.
