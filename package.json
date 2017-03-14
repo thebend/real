@@ -6,6 +6,7 @@
   "dependencies": {},
   "devDependencies": {
     "@types/d3": "^4.7.0",
+    "@types/handlebars": "^4.0.32",
     "@types/jquery": "^2.0.41",
     "typescript": "^2.2.1"
   },

@@ -2,9 +2,6 @@ interface Array<T> {
     find(predicate: (value: T, index: number, obj: Array<T>) => boolean, thisArg?: any): T;
 }
 
-// https://beebole.com/pure/ - simple JavaScript template
-// https://www.sitepoint.com/overview-javascript-templating-engines/
-
 var map;
 var histogramSvg;
 var allData; // the entire data set, which can be filtered to affect mapData
@@ -108,17 +105,9 @@ function getIdentity(d) {
     return d.oid;
 }
 
-var addressNode, pidNode,
-    currentLandNode, currentBuildingNode, currentTotalNode,
-    landTrendNode, buildingTrendNode, totalTrendNode,
-    previousLandNode, previousBuildingNode, previousTotalNode,
-    yearBuiltNode, zoningNode,
-    bedroomsNode, bathroomsNode, carportNode, garageNode,
-    areaNode;
-
 var currencyFormat = d3.format('$,');
-
 var dragStartPos;
+var tooltipTemplate;
 
 $(function() {
     map = d3.select('#map svg').
@@ -133,66 +122,24 @@ $(function() {
             resize({"x": x, "y": y});
         });
     histogramSvg = d3.select('#histogram svg');
+    Handlebars.registerHelper('currencyFormat', function(value) {
+        return currencyFormat(value);
+    });
+    tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
 
-    addressNode = $('#address');
-    pidNode = $('#pid span');
-
-    currentLandNode = $('#currentland');
-    currentBuildingNode = $('#currentbuilding');
-    currentTotalNode = $('#currenttotal');
-
-    landTrendNode = $('#landtrend');
-    buildingTrendNode = $('#buildingtrend');
-    totalTrendNode = $('#totaltrend');
-
-    previousLandNode = $('#previousland');
-    previousBuildingNode = $('#previousbuilding');
-    previousTotalNode = $('#previoustotal');
-
-    yearBuiltNode = $('#yearbuilt span');
-    zoningNode = $('#zoning span');
-    bedroomsNode = $('#bedrooms span');
-    bathroomsNode = $('#bathrooms span');
-    carportNode = $('#carport span');
-    garageNode = $('#garage span');
-
-    areaNode = $('#area span');
 });
 
-function setTrend(node, difference) {
-    if (difference > 0) {
-        node.addClass('glyphicon-arrow-up').removeClass('glyphicon-arrow-down');
-    } else if (difference < 0) {
-        node.addClass('glyphicon-arrow-down').removeClass('glyphicon-arrow-up');
-    } else {
-        node.removeClass('glyphicon-arrow-up').removeClass('glyphicon-arrow-down');
-    }
+function getGlyph(before: number, after: number) {
+    return after - before > 0 ? 'glyphicon-arrow-up' : 'glyphicon-arrow-down';
 }
 
+
 function updateTooltip(d) {
-    addressNode.text(d.address);
-    pidNode.text(d.pid);
-    
-    currentLandNode.text(currencyFormat(d.total_assessed_land));
-    currentBuildingNode.text(currencyFormat(d.total_assessed_building));
-    currentTotalNode.text(currencyFormat(d.total_assessed_value));
-    
-    setTrend(landTrendNode, d.total_assessed_land - d.previous_land);
-    setTrend(buildingTrendNode, d.total_assessed_building - d.previous_building);
-    setTrend(totalTrendNode, d.total_assessed_value - d.previous_total);
-
-    previousLandNode.text(currencyFormat(d.previous_land));
-    previousBuildingNode.text(currencyFormat(d.previous_building));
-    previousTotalNode.text(currencyFormat(d.previous_total));
-    
-    yearBuiltNode.text(d.year_built);
-    zoningNode.text(d.zoning);
-    bedroomsNode.text(d.bedrooms);
-    bathroomsNode.text(d.bathrooms);
-    carportNode.text(d.carport ? 'Yes' : 'No');
-    garageNode.text(d.garage ? 'Yes' : 'No');
-
-    areaNode.text(legendPrecision(getArea(d)));
+    d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
+    d.buildling_glyph = getGlyph(d.previous_building, d.total_assessed_building);
+    d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
+    d.area = legendPrecision(getArea(d));
+    $('#tooltip').html(tooltipTemplate(d));
 }
 
 function displayData(data) {
@@ -369,51 +316,51 @@ function filterAddress() {
     }
 }
 
-function getCurrentUISettings() {
-    return {
-        "scale": $('#scale .active input')[0].getAttribute('name'),
-        "color": $('#color .active input')[0].getAttribute('name'),
-        "zones": $('#zones .active input').map((i, n) => n.getAttribute('name')),
-        "metric": $('#metric .active input')[0].getAttribute('name'),
-        "zoom": null // take each polygon's backing data and find the domain and range
-    }
-}
+// function getCurrentUISettings() {
+//     return {
+//         "scale": $('#scale .active input')[0].getAttribute('name'),
+//         "color": $('#color .active input')[0].getAttribute('name'),
+//         "zones": $('#zones .active input').map((i, n) => n.getAttribute('name')),
+//         "metric": $('#metric .active input')[0].getAttribute('name'),
+//         "zoom": null // take each polygon's backing data and find the domain and range
+//     }
+// }
 
-var renderSettings = {
-    "land-value": {
-        "scale": "linear",
-        "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
-    },
-    "age": {
-        "scale": "log",
-        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-    },
-    "total-value": {
-        "scale": "log",
-        "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
-    },
-    "change-building": {
-        "scale": "linear",
-        "scaleLocked": true,
-        "range": null
-    },
-    "zone-type": {
-        "scale": "ordinal",
-        "scaleLocked": true,
-        "range": [-1,0,1]
-    },
-    "bedroom": {
-        "scale": "log",
-        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-    },
-    "bathroom": {
-        "scale": "log",
-        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-    }
-}
-function render(settings) {
-    var scale = settings.scale == 'linear' ? d3.scaleLinear() : d3.scaleLog();
-}
+// var renderSettings = {
+//     "land-value": {
+//         "scale": "linear",
+//         "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
+//     },
+//     "age": {
+//         "scale": "log",
+//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+//     },
+//     "total-value": {
+//         "scale": "log",
+//         "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
+//     },
+//     "change-building": {
+//         "scale": "linear",
+//         "scaleLocked": true,
+//         "range": null
+//     },
+//     "zone-type": {
+//         "scale": "ordinal",
+//         "scaleLocked": true,
+//         "range": [-1,0,1]
+//     },
+//     "bedroom": {
+//         "scale": "log",
+//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+//     },
+//     "bathroom": {
+//         "scale": "log",
+//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+//     }
+// }
+// function render(settings) {
+//     var scale = settings.scale == 'linear' ? d3.scaleLinear() : d3.scaleLog();
+// }
 
 function toggleFilter(btn) {
     btn = $(btn);

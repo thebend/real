@@ -1,29 +1,19 @@
 <!DOCTYPE html>
-<html ng-app="map">
+<html>
 
 <head>
     <title>Terrace Data Explorer</title>
     
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.7.3/d3.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-shim.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-sham.min.js"></script>
-    <script src="angular.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
     
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="map.js"></script>
-    <script>
-        var mapModule = angular.module('map', []);
-        mapModule.controller('TooltipController', function($scope) {
-            $scope.update = function(data) {
-                for (var key in data) {
-                    $scope[key] = data[key];
-                }
-            }
-        });
-    </script>
 </head>
 
 <body>
@@ -118,32 +108,8 @@
                 </label>
             </div>
         </section>
-<!--
-        <article id="tooltip">
-            <h2 id="address"></h2>
-            <p id="pid"><strong>PID:</strong> <span></span></p>
-            <table id="assessed-values">
-                <thead>
-                    <tr><th></th><th>Current</th><th>Previous</th></tr>
-                </thead>
-                <tbody>
-                    <tr><th>Land</th><td><span id="currentland"></span> <span id="landtrend" class="glyphicon"></span></td><td id="previousland"></td></tr>
-                    <tr><th>Building</th><td><span id="currentbuilding"></span> <span id="buildingtrend" class="glyphicon"></span></td><td id="previousbuilding"></td></tr>
-                    <tr><th>Total</th><td><span id="currenttotal"></span> <span id="totaltrend" class="glyphicon"></span></td><td id="previoustotal"></td></tr>
-                </tbody>
-            </table>
-            <section id="details">
-                <p id="yearbuilt"><strong>Year Built:</strong> <span></span></p>
-                <p id="zoning"><strong>Zoning:</strong> <span></span></p>
-                <p id="bedrooms"><strong>Bedrooms:</strong> <span></span></p>
-                <p id="bathrooms"><strong>Bathrooms:</strong> <span></span></p>
-                <p id="carport"><strong>Carport:</strong> <span></span></p>
-                <p id="garage"><strong>Garage:</strong> <span></span></p>
-                <p id="area"><strong>Area:</strong> <span></span> m<sup>2</sup></p>
-            </section>
-        </article>-->
-        
-        <article id="tooltip">
+
+        <script id="tooltip-template" type="text/x-handlebars-template">
             <h2 id="address">{{ address }}</h2>
             <p id="pid"><strong>PID:</strong> {{ pid }}</p>
             <table id="assessed-values">
@@ -151,13 +117,21 @@
                     <tr><th></th><th>Current</th><th>Previous</th></tr>
                 </thead>
                 <tbody>
-                    <tr><th>Land</th><td>{{ currentland }} <span id="landtrend" class="glyphicon"></span></td><td>{{ previousland }}</td></tr>
-                    <tr><th>Building</th><td>{{ currentbuilding }} <span id="buildingtrend" class="glyphicon"></span></td><td>{{ previousbuilding }}</td></tr>
-                    <tr><th>Total</th><td>{{ currenttotal }} <span id="totaltrend" class="glyphicon"></span></td><td>{{ previoustotal }}</td></tr>
+                    <!-- must set currency format -->
+                    <tr><th>Land</th>
+                        <td>{{ currencyFormat total_assessed_land }} <span class="glyphicon {{ land_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_land }}</td>
+                    </tr><tr><th>Building</th>
+                        <td>{{ currencyFormat total_assessed_building }} <span class="glyphicon {{ building_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_building }}</td>
+                    </tr><tr><th>Total</th>
+                        <td>{{ currencyFormat total_assessed_value }} <span class="glyphicon {{ total_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_total }}</td>
+                    </tr>
                 </tbody>
             </table>
             <section id="details">
-                <p id="yearbuilt"><strong>Year Built:</strong> {{ yearbuilt }}</p>
+                <p id="yearbuilt"><strong>Year Built:</strong> {{ year_built }}</p>
                 <p id="zoning"><strong>Zoning:</strong> {{ zoning }}</p>
                 <p id="bedrooms"><strong>Bedrooms:</strong> {{ bedrooms }}</p>
                 <p id="bathrooms"><strong>Bathrooms:</strong> {{ bathrooms }}</p>
@@ -165,7 +139,8 @@
                 <p id="garage"><strong>Garage:</strong> {{ garage }}</p>
                 <p id="area"><strong>Area:</strong> {{ area }} m<sup>2</sup></p>
             </section>
-        </article>
+        </script>
+        <article id="tooltip"></article>
     </section>
 </body>
 <script>
