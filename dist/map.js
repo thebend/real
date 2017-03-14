@@ -1,1 +1,433 @@
-function getZoneColor(e){var a=zones.filter(function(a){return a.codes.indexOf(e.zoning)>-1})[0];return a?a.color:"lightgray"}function doZoneColor(){$("#scale label").addClass("disabled").removeClass("active"),$("#color label").addClass("disabled").removeClass("active"),map.selectAll("polygon").style("fill",getZoneColor)}function getAge(e){return e.year_built?e.year_built-currentYear:null}function getArea(e){for(var a=e.geometry,o=0,t=0,r=a.length;t<r;t++){var n=a[t][0],l=a[t==a.length-1?0:t+1][1],s=a[t==a.length-1?0:t+1][0],i=a[t][1];o+=n*l*.5,o-=s*i*.5}return Math.abs(o)*meterAreaPerUnitArea}function getLandValueDensity(e){var a=getArea(e);return e.total_assessed_land?a>=60&&a<=61?null:e.total_assessed_land/a:null}function getXAssessmentChange(e,a){if(e&&a){var o=e/a;return o>2.5||o<.5?1:o}return 1}function getBuildingAssessmentChange(e){return getXAssessmentChange(e.total_assessed_building,e.previous_building)}function getLandAssessmentChange(e){return getXAssessmentChange(e.total_assessed_land,e.previous_land)}function getBedrooms(e){return e.bedrooms}function getBathrooms(e){return e.bathrooms}function getIdentity(e){return e.oid}function setTrend(e,a){a>0?e.addClass("glyphicon-arrow-up").removeClass("glyphicon-arrow-down"):a<0?e.addClass("glyphicon-arrow-down").removeClass("glyphicon-arrow-up"):e.removeClass("glyphicon-arrow-up").removeClass("glyphicon-arrow-down")}function updateTooltip(e){addressNode.text(e.address),pidNode.text(e.pid),currentLandNode.text(currencyFormat(e.total_assessed_land)),currentBuildingNode.text(currencyFormat(e.total_assessed_building)),currentTotalNode.text(currencyFormat(e.total_assessed_value)),setTrend(landTrendNode,e.total_assessed_land-e.previous_land),setTrend(buildingTrendNode,e.total_assessed_building-e.previous_building),setTrend(totalTrendNode,e.total_assessed_value-e.previous_total),previousLandNode.text(currencyFormat(e.previous_land)),previousBuildingNode.text(currencyFormat(e.previous_building)),previousTotalNode.text(currencyFormat(e.previous_total)),yearBuiltNode.text(e.year_built),zoningNode.text(e.zoning),bedroomsNode.text(e.bedrooms),bathroomsNode.text(e.bathrooms),carportNode.text(e.carport?"Yes":"No"),garageNode.text(e.garage?"Yes":"No"),areaNode.text(legendPrecision(getArea(e)))}function displayData(data){data.forEach(function(d){d.geometry=eval(d.geometry),d.sales_history=eval(d.sales_history)}),allData=data,mapData=data,map.selectAll("polygon").data(data,getIdentity).enter().append("polygon").on("mouseover",updateTooltip),resize(null),$("#land-value").click()}function getPoints(e){return e.geometry.map(function(e){return xs(e[0])+","+ys(e[1])}).join(" ")}function getDomain(e,a){var o=[];mapData.forEach(function(e){o=o.concat(e.geometry)});var t,r;a?(t=a.x,r=a.y):(t=d3.extent(o.map(function(e){return e[0]})),r=d3.extent(o.map(function(e){return e[1]})));var n=t[1]-t[0],l=r[1]-r[0],s=n/l,i=e.height/e.width;if(i>s){var d=n*i,c=(d-l)/2;r[0]-=c,r[1]+=c}else if(s>i){var u=l/i,c=(u-n)/2;t[0]-=c,t[1]+=c}return{x:t,y:r}}function resize(e){var a=map.node().getBoundingClientRect(),o=getDomain(a,e);xs.domain(o.x).range([0,a.width]),ys.domain(o.y).range([a.height,0]),map.selectAll("polygon").attr("points",getPoints)}function setNewColorParameters(e,a,o){isUpdatingUI=!0,simpleRange=o,colorScale.range(o),$("#"+a).click(),updateColorData(e),$("#simple").click(),$("#scale label").removeClass("disabled"),$("#color label").removeClass("disabled"),recolor()}function doBuildingValueChangeColor(){isUpdatingUI=!0,$("#simple").click(),$("#linear").click(),colorScale.range(["rgb(191,0,0)","rgb(127,127,127)","rgb(0,191,0)"]),updateColorData(getBuildingAssessmentChange),colorScale.domain([d3.min(colorData),1,d3.max(colorData)]),$("#scale label").addClass("disabled"),recolor()}function doLandValueChangeColor(){isUpdatingUI=!0,$("#simple").click(),$("#linear").click(),colorScale.range(["rgb(191,0,0)","rgb(127,127,127)","rgb(0,191,0)"]),updateColorData(getLandAssessmentChange),colorScale.domain([d3.min(colorData),1,d3.max(colorData)]),$("#scale label").addClass("disabled"),recolor()}function updateColorData(e){colorDataFunction=e,colorData=mapData.map(e),3==colorScale.range().length?colorScale.domain([d3.min(colorData),1,d3.max(colorData)]):colorScale.domain(d3.extent(colorData))}function setNewColorScale(e){updateColorScale(e),isUpdatingUI||recolor()}function updateColorScale(e){colorScale=e.domain(colorScale.domain()).range(colorScale.range())}function setScaleColor(e){useViridis="viridis"==e,useViridis?(simpleRange=colorScale.range(),colorScale.range([0,1])):colorScale.range(simpleRange),isUpdatingUI||recolor()}function recolor(){isUpdatingUI=!1,map.selectAll("polygon").style("fill",function(e){var a=colorDataFunction(e);return a?useViridis?d3.interpolateViridis(colorScale(a)):colorScale(a):"#444"}),drawHistogram(colorData)}function updateAddressFilter(){filterAddressTimeout&&clearTimeout(filterAddressTimeout),filterAddressTimeout=setTimeout(filterAddress,500)}function filterAddress(){var e=$("#search input").val().toUpperCase();if(map.selectAll("polygon").style("stroke",null),e){var a=map.selectAll("polygon").filter(function(a){return a.address.indexOf(e)>-1});a.size()>0?($("#search").addClass("has-success").removeClass("has-error"),$("#search .glyphicon").addClass("glyphicon-ok").removeClass("glyphicon-remove"),a.style("stroke","white")):($("#search").addClass("has-error").removeClass("has-success"),$("#search .glyphicon").addClass("glyphicon-remove").removeClass("glyphicon-ok"))}}function getCurrentUISettings(){return{scale:$("#scale .active input")[0].name,color:$("#color .active input")[0].name,zones:$("#zones .active input").map(function(e,a){return a.name}),metric:$("#metric .active input")[0].name,zoom:null}}function render(e){"linear"==e.scale?d3.scaleLinear():d3.scaleLog()}function toggleFilter(e){function a(e){return t.indexOf(e.zoning)!=-1}e=$(e);var o=e.attr("id"),t=zones.filter(function(e){return e.type==o})[0].codes;e.hasClass("active")?(mapData=mapData.filter(function(e){return!a(e)}),map.selectAll("polygon").filter(a).style("display","none"),updateColorData(colorDataFunction),recolor()):(mapData=mapData.concat(allData.filter(a)),updateColorData(colorDataFunction),recolor(),map.selectAll("polygon").filter(a).style("display",null))}function drawHistogram(e){var a=d3.scaleLog().domain(d3.extent(e)),o=d3.histogram().thresholds(a.ticks(20)),t=o(e),r=histogramSvg.node().getBoundingClientRect(),n=r.height/t.length,l=d3.max(t.map(function(e){return e.length}));histogramSvg.selectAll("g").remove();var s=histogramSvg.selectAll("g").data(t).enter().append("g").attr("transform",function(e,a){return"translate(0,"+r.height/t.length*a+")"});s.append("rect").attr("width",function(e){return r.width/l*e.length}).attr("height",BAR_THICKNESS).attr("rx",BAR_THICKNESS/2).attr("y",(n-BAR_THICKNESS)/2),s.append("text").attr("y",n/2-2*BAR_THICKNESS).text(function(e){return legendPrecision(e.x0)+"-"+legendPrecision(e.x1)})}var map,histogramSvg,allData,mapData,zones=[{type:"residential",codes:["R1","R1-A","R2","R3","R4","R5","R6","R7","RS1"],color:"green"},{type:"agricultural",codes:["AR1","AR2"],color:"darkred"},{type:"commercial",codes:["C1","C1-A","C2","C3","C4","C5","C6","C7","ASC","GSC"],color:"royalblue"},{type:"industrial",codes:["M1","M2","M3"],color:"orange"},{type:"public",codes:["AO","P1","P2","P3"],color:"slategrey"}],today=new Date,currentYear=today.getFullYear(),metersPerUnit=5300/980736,meterAreaPerUnitArea=Math.pow(5300,2)/Math.pow(980736,2),addressNode,pidNode,currentLandNode,currentBuildingNode,currentTotalNode,landTrendNode,buildingTrendNode,totalTrendNode,previousLandNode,previousBuildingNode,previousTotalNode,yearBuiltNode,zoningNode,bedroomsNode,bathroomsNode,carportNode,garageNode,areaNode,currencyFormat=d3.format("$,"),dragStartPos;$(function(){map=d3.select("#map svg").on("mousedown",function(){dragStartPos=[d3.event.clientX,d3.event.clientY]}).on("mouseup",function(){var e=[d3.event.clientX,d3.event.clientY];resize({x:[xs.invert(dragStartPos[0]),xs.invert(e[0])],y:[ys.invert(dragStartPos[1]),ys.invert(e[1])]})}),histogramSvg=d3.select("#histogram svg"),addressNode=$("#address"),pidNode=$("#pid span"),currentLandNode=$("#currentland"),currentBuildingNode=$("#currentbuilding"),currentTotalNode=$("#currenttotal"),landTrendNode=$("#landtrend"),buildingTrendNode=$("#buildingtrend"),totalTrendNode=$("#totaltrend"),previousLandNode=$("#previousland"),previousBuildingNode=$("#previousbuilding"),previousTotalNode=$("#previoustotal"),yearBuiltNode=$("#yearbuilt span"),zoningNode=$("#zoning span"),bedroomsNode=$("#bedrooms span"),bathroomsNode=$("#bathrooms span"),carportNode=$("#carport span"),garageNode=$("#garage span"),areaNode=$("#area span")});var xs=d3.scaleLinear(),ys=d3.scaleLinear(),colorDataFunction,colorData,colorScale=d3.scaleLinear(),isUpdatingUI=!1,useViridis=!1,simpleRange,filterAddressTimeout=null,renderSettings={"land-value":{scale:"linear",range:["rgb(191,191,191)","rgb(0,191,0)"]},age:{scale:"log",range:["rgb(0,191,0)","rgb(191,191,191)"]},"total-value":{scale:"log",range:["rgb(191,191,191)","rgb(0,191,0)"]},"change-building":{scale:"linear",scaleLocked:!0,range:null},"zone-type":{scale:"ordinal",scaleLocked:!0,range:[-1,0,1]},bedroom:{scale:"log",range:["rgb(0,191,0)","rgb(191,191,191)"]},bathroom:{scale:"log",range:["rgb(0,191,0)","rgb(191,191,191)"]}},currentYear=(new Date).getFullYear(),BAR_THICKNESS=6,legendPrecision=d3.format(".2f");
+var map;
+var histogramSvg;
+var allData; // the entire data set, which can be filtered to affect mapData
+var mapData; // the potentially filtered data set actually used to render the map
+var zones = [
+    {
+        "type": "residential",
+        "codes": ['R1', 'R1-A', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'RS1'],
+        // "color": "rgba(  0,127,  0, 0.5)"
+        color: "green"
+    }, {
+        "type": "agricultural",
+        "codes": ['AR1', 'AR2'],
+        // "color": "rgba(127,  0,  0, 0.5)"
+        "color": "darkred",
+    }, {
+        "type": "commercial",
+        "codes": ['C1', 'C1-A', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'ASC', 'GSC'],
+        // "color": "rgba(127,  0,  0, 0.5)"
+        "color": "royalblue"
+    }, {
+        "type": "industrial",
+        "codes": ['M1', 'M2', 'M3'],
+        // "color": "rgba(  0,127,  0, 1.0)"
+        "color": "orange"
+    }, {
+        "type": "public",
+        "codes": ['AO', 'P1', 'P2', 'P3'],
+        // "color": "rgba(127,127,  127, 0.5)",
+        "color": "slategrey"
+    }
+];
+function getZoneColor(d) {
+    // var zone = zones.find(function(z) { return z.codes.indexOf(d.zoning) > -1; });
+    var zone = zones.filter(z => z.codes.indexOf(d.zoning) > -1)[0];
+    if (zone)
+        return zone.color;
+    return "lightgray";
+}
+function doZoneColor() {
+    $('#scale label').addClass('disabled').removeClass('active');
+    $('#color label').addClass('disabled').removeClass('active');
+    map.selectAll('polygon').style('fill', getZoneColor);
+}
+var today = new Date();
+var currentYear = today.getFullYear();
+function getAge(d) {
+    return d.year_built ? d.year_built - currentYear : null;
+}
+// domain is 980736 units wide, translates to roughly 5300 meters wide
+var metersPerUnit = 5300 / 980736;
+var meterAreaPerUnitArea = (Math.pow(5300, 2)) / (Math.pow(980736, 2));
+function getArea(d) {
+    var vertices = d.geometry;
+    var total = 0;
+    for (var i = 0, l = vertices.length; i < l; i++) {
+        var addX = vertices[i][0];
+        var addY = vertices[i == vertices.length - 1 ? 0 : i + 1][1];
+        var subX = vertices[i == vertices.length - 1 ? 0 : i + 1][0];
+        var subY = vertices[i][1];
+        total += (addX * addY * 0.5);
+        total -= (subX * subY * 0.5);
+    }
+    return Math.abs(total) * meterAreaPerUnitArea;
+}
+function getLandValueDensity(d) {
+    var area = getArea(d);
+    // some properties have invalid areas with just a small diamond placeholder
+    if (!d.total_assessed_land)
+        return null;
+    // 60.3-60.5m areas are just placeholders with no accurate size
+    if (area >= 60 && area <= 61)
+        return null;
+    return d.total_assessed_land / area;
+}
+function getXAssessmentChange(current, previous) {
+    if (current && previous) {
+        var ratio = current / previous;
+        if (ratio > 2.5 || ratio < 0.5) {
+            return 1;
+        }
+        return ratio;
+    }
+    return 1;
+}
+function getBuildingAssessmentChange(d) {
+    // use clamping here
+    // deal with outliers better than this!
+    return getXAssessmentChange(d.total_assessed_building, d.previous_building);
+}
+function getLandAssessmentChange(d) {
+    // use clamping here
+    // deal with outliers better than this!
+    return getXAssessmentChange(d.total_assessed_land, d.previous_land);
+}
+function getBedrooms(d) {
+    return d.bedrooms;
+}
+function getBathrooms(d) {
+    return d.bathrooms;
+}
+function getIdentity(d) {
+    return d.oid;
+}
+var addressNode, pidNode, currentLandNode, currentBuildingNode, currentTotalNode, landTrendNode, buildingTrendNode, totalTrendNode, previousLandNode, previousBuildingNode, previousTotalNode, yearBuiltNode, zoningNode, bedroomsNode, bathroomsNode, carportNode, garageNode, areaNode;
+var currencyFormat = d3.format('$,');
+var dragStartPos;
+$(function () {
+    map = d3.select('#map svg').
+        on('mousedown', function () {
+        dragStartPos = [d3.event.clientX, d3.event.clientY];
+    }).
+        on('mouseup', function () {
+        var dragEndPos = [d3.event.clientX, d3.event.clientY];
+        var x = [xs.invert(dragStartPos[0]), xs.invert(dragEndPos[0])];
+        var y = [ys.invert(dragStartPos[1]), ys.invert(dragEndPos[1])];
+        resize({ "x": x, "y": y });
+    });
+    histogramSvg = d3.select('#histogram svg');
+    addressNode = $('#address');
+    pidNode = $('#pid span');
+    currentLandNode = $('#currentland');
+    currentBuildingNode = $('#currentbuilding');
+    currentTotalNode = $('#currenttotal');
+    landTrendNode = $('#landtrend');
+    buildingTrendNode = $('#buildingtrend');
+    totalTrendNode = $('#totaltrend');
+    previousLandNode = $('#previousland');
+    previousBuildingNode = $('#previousbuilding');
+    previousTotalNode = $('#previoustotal');
+    yearBuiltNode = $('#yearbuilt span');
+    zoningNode = $('#zoning span');
+    bedroomsNode = $('#bedrooms span');
+    bathroomsNode = $('#bathrooms span');
+    carportNode = $('#carport span');
+    garageNode = $('#garage span');
+    areaNode = $('#area span');
+});
+function setTrend(node, difference) {
+    if (difference > 0) {
+        node.addClass('glyphicon-arrow-up').removeClass('glyphicon-arrow-down');
+    }
+    else if (difference < 0) {
+        node.addClass('glyphicon-arrow-down').removeClass('glyphicon-arrow-up');
+    }
+    else {
+        node.removeClass('glyphicon-arrow-up').removeClass('glyphicon-arrow-down');
+    }
+}
+function updateTooltip(d) {
+    addressNode.text(d.address);
+    pidNode.text(d.pid);
+    currentLandNode.text(currencyFormat(d.total_assessed_land));
+    currentBuildingNode.text(currencyFormat(d.total_assessed_building));
+    currentTotalNode.text(currencyFormat(d.total_assessed_value));
+    setTrend(landTrendNode, d.total_assessed_land - d.previous_land);
+    setTrend(buildingTrendNode, d.total_assessed_building - d.previous_building);
+    setTrend(totalTrendNode, d.total_assessed_value - d.previous_total);
+    previousLandNode.text(currencyFormat(d.previous_land));
+    previousBuildingNode.text(currencyFormat(d.previous_building));
+    previousTotalNode.text(currencyFormat(d.previous_total));
+    yearBuiltNode.text(d.year_built);
+    zoningNode.text(d.zoning);
+    bedroomsNode.text(d.bedrooms);
+    bathroomsNode.text(d.bathrooms);
+    carportNode.text(d.carport ? 'Yes' : 'No');
+    garageNode.text(d.garage ? 'Yes' : 'No');
+    areaNode.text(legendPrecision(getArea(d)));
+}
+function displayData(data) {
+    data.forEach(function (d) {
+        d.geometry = eval(d.geometry);
+        d.sales_history = eval(d.sales_history);
+    });
+    allData = data;
+    mapData = data;
+    map.selectAll('polygon').
+        data(data, getIdentity).enter().
+        append('polygon').
+        on('mouseover', updateTooltip);
+    resize(null);
+    $('#land-value').click();
+}
+var xs = d3.scaleLinear();
+var ys = d3.scaleLinear();
+function getPoints(dataPoint) {
+    return dataPoint.geometry.map(function (d) {
+        return xs(d[0]) + ',' + ys(d[1]);
+    }).join(' ');
+}
+function getDomain(range, suggestedDomain) {
+    var points = [];
+    mapData.forEach(function (dataPoint) {
+        points = points.concat(dataPoint.geometry);
+    });
+    var domainX;
+    var domainY;
+    if (suggestedDomain) {
+        domainX = suggestedDomain.x;
+        domainY = suggestedDomain.y;
+    }
+    else {
+        domainX = d3.extent(points.map(function (p) { return p[0]; }));
+        domainY = d3.extent(points.map(function (p) { return p[1]; }));
+    }
+    var domainWidth = domainX[1] - domainX[0];
+    var domainHeight = domainY[1] - domainY[0];
+    var domainSlope = domainWidth / domainHeight;
+    var rangeSlope = range.height / range.width;
+    if (rangeSlope > domainSlope) {
+        var newDomainHeight = domainWidth * rangeSlope;
+        var diffPerSide = (newDomainHeight - domainHeight) / 2;
+        domainY[0] -= diffPerSide;
+        domainY[1] += diffPerSide;
+    }
+    else if (domainSlope > rangeSlope) {
+        var newDomainWidth = domainHeight / rangeSlope;
+        var diffPerSide = (newDomainWidth - domainWidth) / 2;
+        domainX[0] -= diffPerSide;
+        domainX[1] += diffPerSide;
+    }
+    return {
+        "x": domainX,
+        "y": domainY
+    };
+}
+function resize(suggestedDomain) {
+    var range = map.node().getBoundingClientRect();
+    var domain = getDomain(range, suggestedDomain);
+    xs.domain(domain.x).range([0, range.width]);
+    ys.domain(domain.y).range([range.height, 0]);
+    map.selectAll('polygon').attr('points', getPoints);
+}
+var colorDataFunction;
+var colorData;
+var colorScale = d3.scaleLinear();
+var isUpdatingUI = false;
+function setNewColorParameters(dataFunction, scaleType, scaleRange) {
+    isUpdatingUI = true;
+    simpleRange = scaleRange;
+    colorScale.range(scaleRange);
+    $('#' + scaleType).click();
+    updateColorData(dataFunction);
+    $('#simple').click();
+    $('#scale label').removeClass('disabled');
+    $('#color label').removeClass('disabled');
+    recolor();
+}
+function doBuildingValueChangeColor() {
+    isUpdatingUI = true;
+    $('#simple').click();
+    $('#linear').click();
+    colorScale.range(['rgb(191,0,0)', 'rgb(127,127,127)', 'rgb(0,191,0)']);
+    updateColorData(getBuildingAssessmentChange);
+    colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
+    $('#scale label').addClass('disabled');
+    recolor();
+    // setNewColorParameters(getBuildingAssessmentChange, 'log', ['rgb(191,0,0)', 'rgb(0,191,0)']);
+}
+function doLandValueChangeColor() {
+    isUpdatingUI = true;
+    $('#simple').click();
+    $('#linear').click();
+    colorScale.range(['rgb(191,0,0)', 'rgb(127,127,127)', 'rgb(0,191,0)']);
+    updateColorData(getLandAssessmentChange);
+    colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
+    $('#scale label').addClass('disabled');
+    recolor();
+    // setNewColorParameters(getTotalAssessmentChange, 'log', ['rgb(191,0,0)', 'rgb(0,191,0)']);
+}
+function updateColorData(dataFunction) {
+    colorDataFunction = dataFunction;
+    colorData = mapData.map(dataFunction);
+    if (colorScale.range().length == 3) {
+        colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
+    }
+    else {
+        colorScale.domain(d3.extent(colorData));
+    }
+}
+function setNewColorScale(scale) {
+    updateColorScale(scale);
+    if (!isUpdatingUI)
+        recolor();
+}
+function updateColorScale(scale) {
+    // Replace scale with a new one using same domain and range,
+    // used to change from linear to log types
+    colorScale = scale.
+        domain(colorScale.domain()).
+        range(colorScale.range());
+}
+var useViridis = false;
+var simpleRange;
+function setScaleColor(scaleColor) {
+    useViridis = scaleColor == 'viridis';
+    if (useViridis) {
+        simpleRange = colorScale.range();
+        colorScale.range([0, 1]);
+    }
+    else {
+        colorScale.range(simpleRange);
+    }
+    if (!isUpdatingUI)
+        recolor();
+}
+function recolor() {
+    isUpdatingUI = false;
+    map.selectAll('polygon').
+        style('fill', function (d) {
+        var val = colorDataFunction(d);
+        if (!val)
+            return '#444';
+        if (useViridis)
+            return d3.interpolateViridis(colorScale(val));
+        else
+            return colorScale(val);
+    });
+    drawHistogram(colorData);
+}
+var filterAddressTimeout = null;
+function updateAddressFilter() {
+    if (filterAddressTimeout)
+        clearTimeout(filterAddressTimeout);
+    filterAddressTimeout = setTimeout(filterAddress, 500);
+}
+function filterAddress() {
+    var searchVal = $('#search input').val().toUpperCase();
+    map.selectAll('polygon').style('stroke', null);
+    if (searchVal) {
+        var targets = map.selectAll('polygon').filter(function (d) {
+            return d.address.indexOf(searchVal) > -1;
+        });
+        if (targets.size() > 0) {
+            $('#search').addClass('has-success').removeClass('has-error');
+            $('#search .glyphicon').addClass('glyphicon-ok').removeClass('glyphicon-remove');
+            targets.style('stroke', 'white');
+        }
+        else {
+            $('#search').addClass('has-error').removeClass('has-success');
+            $('#search .glyphicon').addClass('glyphicon-remove').removeClass('glyphicon-ok');
+        }
+    }
+}
+function getCurrentUISettings() {
+    return {
+        "scale": $('#scale .active input')[0].name,
+        "color": $('#color .active input')[0].name,
+        "zones": $('#zones .active input').map(function (idx, n) { return n.name; }),
+        "metric": $('#metric .active input')[0].name,
+        "zoom": null // take each polygon's backing data and find the domain and range
+    };
+}
+var renderSettings = {
+    "land-value": {
+        "scale": "linear",
+        "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
+    },
+    "age": {
+        "scale": "log",
+        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+    },
+    "total-value": {
+        "scale": "log",
+        "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
+    },
+    "change-building": {
+        "scale": "linear",
+        "scaleLocked": true,
+        "range": null
+    },
+    "zone-type": {
+        "scale": "ordinal",
+        "scaleLocked": true,
+        "range": [-1, 0, 1]
+    },
+    "bedroom": {
+        "scale": "log",
+        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+    },
+    "bathroom": {
+        "scale": "log",
+        "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
+    }
+};
+function render(settings) {
+    var scale = settings.scale == 'linear' ? d3.scaleLinear() : d3.scaleLog();
+}
+function toggleFilter(btn) {
+    btn = $(btn);
+    var zoneTarget = btn.attr('id');
+    // var zoneCodes = zones.find(function(zone) { return zone.type == zoneTarget; }).codes;
+    var zoneCodes = zones.filter(z => z.type == zoneTarget)[0].codes;
+    function isFilterZone(d) { return zoneCodes.indexOf(d.zoning) != -1; }
+    function isNotFilterZone(d) { return !isFilterZone(d); }
+    if (btn.hasClass('active')) {
+        mapData = mapData.filter(d => !isFilterZone(d));
+        map.selectAll('polygon').filter(isFilterZone).style('display', 'none');
+        updateColorData(colorDataFunction);
+        recolor();
+    }
+    else {
+        mapData = mapData.concat(allData.filter(isFilterZone));
+        updateColorData(colorDataFunction);
+        recolor();
+        map.selectAll('polygon').filter(isFilterZone).style('display', null);
+    }
+    // track full data set and filtered data set separately
+    // recalculate data, scales
+    // redraw
+}
+var currentYear = new Date().getFullYear();
+var BAR_THICKNESS = 6;
+var legendPrecision = d3.format('.2f');
+function drawHistogram(data) {
+    var yearScale = d3.scaleLog().domain(d3.extent(data));
+    var histogram = d3.histogram().thresholds(yearScale.ticks(20));
+    var bins = histogram(data);
+    var boundary = histogramSvg.node().getBoundingClientRect();
+    var barAreaHeight = boundary.height / bins.length;
+    var maxSize = d3.max(bins.map(function (i) { return i.length; }));
+    histogramSvg.selectAll('g').remove();
+    var barGroups = histogramSvg.selectAll('g').data(bins).enter().append('g').
+        attr('transform', function (d, i) { return 'translate(0,' + (boundary.height / bins.length * i) + ')'; });
+    barGroups.append('rect').
+        attr('width', function (d) { return boundary.width / maxSize * d.length; }).
+        attr('height', BAR_THICKNESS).
+        attr('rx', BAR_THICKNESS / 2).
+        attr('y', (barAreaHeight - BAR_THICKNESS) / 2);
+    barGroups.append('text').
+        attr('y', barAreaHeight / 2 - (2 * BAR_THICKNESS)).
+        text(function (d) { return legendPrecision(d.x0) + '-' + legendPrecision(d.x1); });
+}
