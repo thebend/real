@@ -2,13 +2,13 @@
 This is mostly an attempt to learn every JavaScript best practice at once.
 
 I will attempt to refactor a modest project of mine, to create interesting data visualizations of Terrace BC, using things like:
-* Package managers (npm, bower)
-* Build tools (grunt, gulp)
-* Linters (JSHint, ESLint)
+* Package managers (**npm**, bower)
+* Build tools (grunt, **gulp**)
+* Linters (JSHint, **ESLint**)
 * Testing frameworks (mocha, QUnit)
-* Super-languages (CoffeeScript/TypeScript, SASS/LESS) (is this what Babel is for?)
+* Super-languages (CoffeeScript/**TypeScript**/Babel-ES6, SASS/LESS,**PostCSS**)
 * Development frameworks (React, Angular)
-* Bundlers (Browserify, webpack)
+* Bundlers (Browserify, **webpack**)
 * Minifiers?
 * FTP publishing?
 * ???
@@ -48,9 +48,22 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
 * Should I even bother with installing TSLint or ESLint when I can just use VS Code's plugins?
 * Should I make things like linters part of the dev dependencies when they're really developer preference?
 * Should I just take my original project and refactor it using these new tools one at a time, understanding and superceding them as I go?
- * Bower?
- * TypeScript
- * TSLint
- * PostCSS
- * Webpack
- * Gulp
+ * Bower?  No, just directly inserting CDN links
+ * TypeScript?  Yes, instead of Babel ES6
+ * TSLint?  Yes in VSCode, but must configure to give better recommendations
+ * PostCSS?
+ * Webpack?  Maybe if I start breaking .ts code up?
+ * Gulp?  No, used for a while but don't need it at this point
+
+# Problems and Solutions
+* Use local verbose libraries in dev, minified CDN versions in production
+ * Use gulp with gulp-cdnizer to replace specified libraries
+* Utilize JavaScript syntax not supported in all browsers.
+ * Can use TypeScript or Babel.  Let's try TypeScript!
+* TypeScript says invalid references to d3 and $
+ * Could add "declare var $: any;" and similar
+ * Instead npm install @types/jquery @types/d3
+* TypeScript complains about [].find()
+ * Could export target ES6
+ * Could import core-js/es6 > webpack
+ * Instead including CDN polyfill script, add array.find interface to .ts, leave target ES5

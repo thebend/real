@@ -14,27 +14,22 @@ var zones = [
     {
         "type": "residential",
         "codes": ['R1', 'R1-A', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'RS1'],
-        // "color": "rgba(  0,127,  0, 0.5)"
         color: "green"
     }, {
         "type": "agricultural",
         "codes": ['AR1', 'AR2'],
-        // "color": "rgba(127,  0,  0, 0.5)"
         "color": "darkred",
     }, {
         "type": "commercial",
         "codes": ['C1', 'C1-A', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'ASC', 'GSC'],
-        // "color": "rgba(127,  0,  0, 0.5)"
         "color": "royalblue"
     }, {
         "type": "industrial",
         "codes": ['M1', 'M2', 'M3'],
-        // "color": "rgba(  0,127,  0, 1.0)"
         "color": "orange"
     }, {
         "type": "public",
         "codes": ['AO', 'P1', 'P2', 'P3'],
-        // "color": "rgba(127,127,  127, 0.5)",
         "color": "slategrey"
     }
 ];
@@ -220,9 +215,7 @@ function displayData(data) {
 var xs = d3.scaleLinear();
 var ys = d3.scaleLinear();        
 function getPoints(dataPoint) {
-    return dataPoint.geometry.map(function(d) {
-        return xs(d[0])+','+ys(d[1]);
-    }).join(' ');
+    return dataPoint.geometry.map(d => xs(d[0])+','+ys(d[1])).join(' ');
 }
 
 function getDomain(range, suggestedDomain) {
@@ -236,8 +229,8 @@ function getDomain(range, suggestedDomain) {
         domainX = suggestedDomain.x;
         domainY = suggestedDomain.y;
     } else {
-        domainX = d3.extent(points.map(function(p) { return p[0]; }));
-        domainY = d3.extent(points.map(function(p) { return p[1]; }));
+        domainX = d3.extent(points.map(p => p[0]));
+        domainY = d3.extent(points.map(p => p[1]));
     }
     var domainWidth = domainX[1] - domainX[0];
     var domainHeight = domainY[1] - domainY[0];
@@ -364,9 +357,7 @@ function filterAddress() {
     var searchVal = $('#search input').val().toUpperCase();
     map.selectAll('polygon').style('stroke', null);
     if (searchVal) {
-        var targets = map.selectAll('polygon').filter(function(d) {
-                return d.address.indexOf(searchVal) > -1;
-            });
+        var targets = map.selectAll('polygon').filter(d => d.address.indexOf(searchVal) > -1);
         if (targets.size() > 0) {
             $('#search').addClass('has-success').removeClass('has-error');
             $('#search .glyphicon').addClass('glyphicon-ok').removeClass('glyphicon-remove');
@@ -382,7 +373,7 @@ function getCurrentUISettings() {
     return {
         "scale": $('#scale .active input')[0].getAttribute('name'),
         "color": $('#color .active input')[0].getAttribute('name'),
-        "zones": $('#zones .active input').map(function(idx, n) { return n.getAttribute('name'); }),
+        "zones": $('#zones .active input').map((i, n) => n.getAttribute('name')),
         "metric": $('#metric .active input')[0].getAttribute('name'),
         "zoom": null // take each polygon's backing data and find the domain and range
     }
@@ -429,7 +420,6 @@ function toggleFilter(btn) {
     var zoneTarget = btn.attr('id');
     var zoneCodes = zones.find(z => z.type == zoneTarget).codes;
     function isFilterZone(d) { return zoneCodes.indexOf(d.zoning) != -1; }
-    function isNotFilterZone(d) { return !isFilterZone(d); }
     if (btn.hasClass('active')) {
         mapData = mapData.filter(d => !isFilterZone(d));
         map.selectAll('polygon').filter(isFilterZone).style('display', 'none');
@@ -458,13 +448,13 @@ function drawHistogram(data: number[]) {
     var maxSize = d3.max(bins.map(function(i) { return i.length; }));
     histogramSvg.selectAll('g').remove();
     var barGroups = histogramSvg.selectAll('g').data(bins).enter().append('g').
-        attr('transform', function(d, i) { return 'translate(0,'+(boundary.height / bins.length * i)+')'; });
+        attr('transform', (d, i) => 'translate(0,'+(boundary.height / bins.length * i)+')');
     barGroups.append('rect').
-        attr('width', function(d) { return boundary.width / maxSize * d.length; }).
+        attr('width', d => boundary.width / maxSize * d.length).
         attr('height', BAR_THICKNESS).
         attr('rx', BAR_THICKNESS / 2).
         attr('y', (barAreaHeight - BAR_THICKNESS) / 2);
     barGroups.append('text').
         attr('y', barAreaHeight / 2 - (2 * BAR_THICKNESS)).
-        text(function(d) { return legendPrecision(d.x0) + '-' + legendPrecision(d.x1); });
+        text(d => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
 }
