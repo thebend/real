@@ -13,7 +13,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "ts": "tsc --outfile src/map.js",
-    "lint": "tslint **.ts"
+    "lint": "tslint **.ts",
+    "build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y && tsc --outfile build\\map.js"
   },
   "repository": {
     "type": "git",
