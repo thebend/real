@@ -67,3 +67,13 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
  * Could export target ES6
  * Could import core-js/es6 > webpack
  * Instead including CDN polyfill script, add array.find interface to .ts, leave target ES5
+
+# Webpack Migration
+* Branch
+* Install webpack
+* Get basic config file
+* Commit
+* Install plugins
+* Add require() code
+* Test
+* Commit
