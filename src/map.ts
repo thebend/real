@@ -20,7 +20,8 @@ interface LandProperty {
     year_built: number;
     address: string;
     
-    geometry: any;
+    geometry: string;
+    points?: number[][];
     area?: number;
 
     bedrooms: number;
@@ -54,6 +55,19 @@ var histogramSvg;
 var allData: LandProperty[]; // the entire data set, which can be filtered to affect mapData
 var mapData: LandProperty[]; // the potentially filtered data set actually used to render the map
 
+var currencyFormat = d3.format('$,');
+var dragStartPos: [number,number];
+var tooltipTemplate: HandlebarsTemplateDelegate;
+var xs = d3.scaleLinear();
+var ys = d3.scaleLinear();
+var colorDataFunction: (d: LandProperty) => number;
+var colorData: number[];
+var colorScale = d3.scaleLinear<number | string>();
+var isUpdatingUI = false;
+var useViridis = false;
+var simpleRange: (string|number)[];
+
+
 var zones: Zone[] = [
     {
         "type": "residential",
@@ -79,122 +93,86 @@ var zones: Zone[] = [
 ];
 function getZoneColor(d: LandProperty) {
     var zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
-    if (zone) return zone.color;
-    return "lightgray";
+    return zone ? zone.color : "lightgray";
 }
 function doZoneColor() {
+    // why do I need to manually set the CSS classes on bootstrap buttons?
     $('#scale label').addClass('disabled').removeClass('active');
     $('#color label').addClass('disabled').removeClass('active');
     map.selectAll('polygon').style('fill', getZoneColor);
 }
-var today = new Date();
-var currentYear = today.getFullYear();
-function getAge(d: LandProperty) {
-    return d.year_built ? d.year_built - currentYear : null;
-}
 
-// domain is 980736 units wide, translates to roughly 5300 meters wide
-var metersPerUnit = 5300 / 980736;
-var meterAreaPerUnitArea = (5300**2) / (980736**2);
+function getAgeCalculator(year: number) {
+    return function(d: LandProperty) {
+        return d.year_built ? d.year_built - year : null;
+    }
+}
+var getAge = getAgeCalculator(new Date().getFullYear());
+
+// domain estimated at 980736 units wide, translates to roughly 5300 meters wide
+const METERS_PER_UNIT = 5300 / 980736;
+const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
 function getArea(d: LandProperty) {
-    var vertices = d.geometry;
+    var points = d.points;
     var total = 0;
-    for (var i = 0, l = vertices.length; i < l; i++) {
-        var addX = vertices[i][0];
-        var addY = vertices[i == vertices.length - 1 ? 0 : i + 1][1];
-        var subX = vertices[i == vertices.length - 1 ? 0 : i + 1][0];
-        var subY = vertices[i][1];
+    for (var i = 0, l = points.length; i < l; i++) {
+        var addX = points[i][0];
+        var addY = points[i == points.length - 1 ? 0 : i + 1][1];
+        var subX = points[i == points.length - 1 ? 0 : i + 1][0];
+        var subY = points[i][1];
 
         total += (addX * addY * 0.5);
         total -= (subX * subY * 0.5);
     }
-    return Math.abs(total) * meterAreaPerUnitArea;
+    return Math.abs(total) * METERS_PER_UNIT_AREA;
 }
 function getLandValueDensity(d: LandProperty) {
-    var area = getArea(d);
-    // some properties have invalid areas with just a small diamond placeholder
     if (!d.total_assessed_land) return null;
     // 60.3-60.5m areas are just placeholders with no accurate size
-    if (area >= 60 && area <= 61) return null;
-    return d.total_assessed_land / area;
+    if (d.area >= 60 && d.area <= 61) return null;
+    return d.total_assessed_land / d.area;
 }
 
-function getXAssessmentChange(current: number, previous: number) {
+function getChangeRatio(current: number, previous: number) {
     if (current && previous) {
         var ratio = current / previous;
+        // use clamping here?
+        // deal with outliers better than this!
         if (ratio > 0.5 && ratio < 2.5) return ratio;
     }
     return 1;
 }
 function getBuildingAssessmentChange(d: LandProperty) {
-    // use clamping here
-    // deal with outliers better than this!
-    return getXAssessmentChange(d.total_assessed_building, d.previous_building);
+    return getChangeRatio(d.total_assessed_building, d.previous_building);
 }
 function getLandAssessmentChange(d: LandProperty) {
-    // use clamping here
-    // deal with outliers better than this!
-    return getXAssessmentChange(d.total_assessed_land, d.previous_land);
+    return getChangeRatio(d.total_assessed_land, d.previous_land);
 }
-
-function getBedrooms(d: LandProperty) {
-    return d.bedrooms;
-}
-
-function getBathrooms(d: LandProperty) {
-    return d.bathrooms;
-}
-
-function getIdentity(d: LandProperty) {
-    return d.oid_evbc_b64;
-}
-
-var currencyFormat = d3.format('$,');
-var dragStartPos: number[];
-var tooltipTemplate: HandlebarsTemplateDelegate;
-
-$(function() {
-    map = d3.select('#map svg').
-        on('mousedown', function() {
-            dragStartPos = [d3.event.clientX, d3.event.clientY];
-        }).
-        on('mouseup', function() {
-            var dragEndPos = [d3.event.clientX, d3.event.clientY];
-
-            var x = [xs.invert(dragStartPos[0]), xs.invert(dragEndPos[0])];
-            var y = [ys.invert(dragStartPos[1]), ys.invert(dragEndPos[1])];
-            resize({"x": x, "y": y});
-        });
-    histogramSvg = d3.select('#histogram svg');
-    Handlebars.registerHelper('currencyFormat', function(value) {
-        return currencyFormat(value);
-    });
-    tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
-
-});
 
 function getGlyph(before: number, after: number) {
-    return after - before > 0 ? 'glyphicon-arrow-up' : 'glyphicon-arrow-down';
+    return 'glyphicon-arrow-' + (after - before > 0 ? 'up' : 'down');
 }
 
 function updateTooltip(d: LandProperty) {
-    d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
-    d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
-    d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
-    d.area = Math.round(getArea(d));
     $('#tooltip').html(tooltipTemplate(d));
 }
 
 function displayData(data: LandProperty[]) {
     data.forEach(function(d) {
-        d.geometry = eval(d.geometry);
+        d.points = eval(d.geometry);
         d.sales_history = eval(d.sales_history);
+        
+        d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
+        d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
+        d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
+
+        d.area = Math.round(getArea(d));
     });
     allData = data;
     mapData = data;
 
     map.selectAll('polygon').
-        data(data, getIdentity).enter().
+        data(data, d => d.oid_evbc_b64).enter().
         append('polygon').
         on('mouseover', updateTooltip);
 
@@ -202,19 +180,12 @@ function displayData(data: LandProperty[]) {
 
     $('#land-value').click();
 }
-var xs = d3.scaleLinear();
-var ys = d3.scaleLinear();        
-function getPoints(d: LandProperty) {
-    return d.geometry.map(p => xs(p[0])+','+ys(p[1])).join(' ');
-}
 
 function getDomain(range, suggestedDomain: Box) {
     var points = [];
-    mapData.forEach(function(dataPoint) {
-        points = points.concat(dataPoint.geometry);
-    });
-    var domainX;
-    var domainY;
+    mapData.forEach(p => points = points.concat(p.points));
+    var domainX: number[];
+    var domainY: number[];
     if (suggestedDomain) {
         domainX = suggestedDomain.x;
         domainY = suggestedDomain.y;
@@ -244,18 +215,16 @@ function getDomain(range, suggestedDomain: Box) {
         "y": domainY
     }
 }
-
+function getPointString(d: LandProperty): string {
+    return d.points.map(p => xs(p[0])+','+ys(p[1])).join(' ');
+}
 function resize(suggestedDomain?: Box) {
     var range = map.node().getBoundingClientRect();
     var domain = getDomain(range, suggestedDomain);
     xs.domain(domain.x).range([0, range.width]);
     ys.domain(domain.y).range([range.height, 0]);
-    map.selectAll('polygon').attr('points', getPoints);
+    map.selectAll('polygon').attr('points', getPointString);
 }
-var colorDataFunction: (d: LandProperty) => number;
-var colorData: number[];
-var colorScale = d3.scaleLinear<number | string>();
-var isUpdatingUI = false;
 
 function setNewColorParameters(dataFunction: (d: LandProperty) => number, scaleType, scaleRange) {
     isUpdatingUI = true;
@@ -268,27 +237,15 @@ function setNewColorParameters(dataFunction: (d: LandProperty) => number, scaleT
     $('#color label').removeClass('disabled');
     recolor();
 }
-function doBuildingValueChangeColor() {
+function doValueChangeColor(accessor: (d: LandProperty) => number) {
     isUpdatingUI = true;
     $('#simple').click();
     $('#linear').click();
     colorScale.range(['rgb(191,0,0)','rgb(127,127,127)','rgb(0,191,0)']);
-    updateColorData(getBuildingAssessmentChange);
+    updateColorData(accessor);
     colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
     $('#scale label').addClass('disabled');
     recolor();
-    // setNewColorParameters(getBuildingAssessmentChange, 'log', ['rgb(191,0,0)', 'rgb(0,191,0)']);
-}
-function doLandValueChangeColor() {
-    isUpdatingUI = true;
-    $('#simple').click();
-    $('#linear').click();
-    colorScale.range(['rgb(191,0,0)','rgb(127,127,127)','rgb(0,191,0)']);
-    updateColorData(getLandAssessmentChange);
-    colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
-    $('#scale label').addClass('disabled');
-    recolor();
-    // setNewColorParameters(getTotalAssessmentChange, 'log', ['rgb(191,0,0)', 'rgb(0,191,0)']);
 }
 
 function updateColorData(dataFunction: (d: LandProperty) => number) {
@@ -312,8 +269,6 @@ function updateColorScale(scale: d3.ScaleLinear<any,any>) {
         domain(colorScale.domain()).
         range(colorScale.range());
 }
-var useViridis = false;
-var simpleRange: (string|number)[];
 function setScaleColor(scaleColor) {
     useViridis = scaleColor == 'viridis';
     if (useViridis) {
@@ -339,14 +294,14 @@ function recolor() {
 
 var filterAddressTimeout: number;
 function updateAddressFilter() {
-    if (filterAddressTimeout) clearTimeout(filterAddressTimeout);
+    clearTimeout(filterAddressTimeout);
     filterAddressTimeout = setTimeout(filterAddress, 500);
 }
 function filterAddress() {
-    var searchVal = $('#search input').val().toUpperCase();
+    const searchVal = $('#search input').val().toUpperCase();
     map.selectAll('polygon').style('stroke', null);
     if (searchVal) {
-        var targets = map.selectAll('polygon').filter(d => d.address.includes(searchVal));
+        var targets = map.selectAll('polygon').filter(d => d.address.indexOf(searchVal) > -1);
         if (targets.size() > 0) {
             $('#search').addClass('has-success').removeClass('has-error');
             $('#search .glyphicon').addClass('glyphicon-ok').removeClass('glyphicon-remove');
@@ -358,8 +313,8 @@ function filterAddress() {
     }
 }
 
-function toggleFilter(btn) {
-    btn = $(btn);
+function toggleFilter(btnElement: Element) {
+    var btn = $(btnElement);
     var zoneTarget = btn.attr('id');
     var zoneCodes = zones.find(z => z.type == zoneTarget).codes;
     function isFilterZone(d) { return zoneCodes.indexOf(d.zoning) > -1; }
@@ -379,7 +334,6 @@ function toggleFilter(btn) {
     // redraw
 }
 
-var currentYear = new Date().getFullYear();
 var BAR_THICKNESS = 6;
 var legendPrecision = d3.format('.2f');
 function drawHistogram(data: number[]) {
@@ -388,7 +342,7 @@ function drawHistogram(data: number[]) {
     var bins = histogram(data);
     var boundary = histogramSvg.node().getBoundingClientRect();
     var barAreaHeight = boundary.height / bins.length;
-    var maxSize = d3.max(bins.map(function(i) { return i.length; }));
+    var maxSize = d3.max(bins.map(i => i.length));
     histogramSvg.selectAll('g').remove();
     var barGroups = histogramSvg.selectAll('g').data(bins).enter().append('g').
         attr('transform', (d, i) => 'translate(0,'+(boundary.height / bins.length * i)+')');
@@ -402,50 +356,43 @@ function drawHistogram(data: number[]) {
         text(d => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
 }
 
-// function getCurrentUISettings() {
-//     return {
-//         "scale": $('#scale .active input')[0].getAttribute('name'),
-//         "color": $('#color .active input')[0].getAttribute('name'),
-//         "zones": $('#zones .active input').map((i, n) => n.getAttribute('name')),
-//         "metric": $('#metric .active input')[0].getAttribute('name'),
-//         "zoom": null // take each polygon's backing data and find the domain and range
-//     }
-// }
+$(function() {
+    map = d3.select('#map svg').
+        on('mousedown', function() {
+            dragStartPos = [d3.event.clientX, d3.event.clientY];
+        }).
+        on('mouseup', function() {
+            var dragEndPos = [d3.event.clientX, d3.event.clientY];
 
-// var renderSettings = {
-//     "land-value": {
-//         "scale": "linear",
-//         "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
-//     },
-//     "age": {
-//         "scale": "log",
-//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-//     },
-//     "total-value": {
-//         "scale": "log",
-//         "range": ['rgb(191,191,191)', 'rgb(0,191,0)']
-//     },
-//     "change-building": {
-//         "scale": "linear",
-//         "scaleLocked": true,
-//         "range": null
-//     },
-//     "zone-type": {
-//         "scale": "ordinal",
-//         "scaleLocked": true,
-//         "range": [-1,0,1]
-//     },
-//     "bedroom": {
-//         "scale": "log",
-//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-//     },
-//     "bathroom": {
-//         "scale": "log",
-//         "range": ['rgb(0,191,0)', 'rgb(191,191,191)']
-//     }
-// }
-// function render(settings) {
-//     var scale = settings.scale == 'linear' ? d3.scaleLinear() : d3.scaleLog();
-// }
+            var x = [xs.invert(dragStartPos[0]), xs.invert(dragEndPos[0])];
+            var y = [ys.invert(dragStartPos[1]), ys.invert(dragEndPos[1])];
+            resize({"x": x, "y": y});
+        });
+    histogramSvg = d3.select('#histogram svg');
+    Handlebars.registerHelper('currencyFormat', currencyFormat);
+    tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
+
+    // configure UI events
+    'residential commercial industrial agricultural public'.split(' ').forEach(function(id) {
+        $('#'+id).on('click', () => toggleFilter(document.getElementById(id)));
+    });
+    const clickActions = {
+        "linear": () => setNewColorScale(d3.scaleLinear()),
+        "log": () => setNewColorScale(d3.scaleLog()),
+        "simple": () => setScaleColor('simple'),
+        "viridis": () => setScaleColor('viridis'),
+        "land-value": () => setNewColorParameters(getLandValueDensity, 'linear', ['rgb(191,191,191)', 'rgb(0,191,0)']),
+        "age": () => setNewColorParameters(getAge, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']),
+        "total-value": () => setNewColorParameters(d => d.total_assessed_value, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']),
+        "change-building": () => doValueChangeColor(getBuildingAssessmentChange),
+        "change-land": () => doValueChangeColor(getLandAssessmentChange),
+        "zone-type": doZoneColor,
+        "bedroom": () => setNewColorParameters(d => d.bedrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)']),
+        "bathroom": () => setNewColorParameters(d => d.bathrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)'])
+    }
+    for (var key in clickActions) {
+        $('#'+key).on('click', clickActions[key]);
+    }
+});
 
 d3.csv('terrace.csv', displayData);

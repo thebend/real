@@ -4,5 +4,8 @@
         "target": "es6",
         "noImplicitAny": false,
         "sourceMap": true
-    }
+    },
+    "files": [
+        "map.ts"
+    ]
 }
