@@ -1,4 +1,4 @@
-interface LandProperty {
+export interface LandProperty {
     oid_evbc_b64: string;
     
     total_assessed_value: number;
@@ -27,4 +27,20 @@ interface LandProperty {
     sales_history: any;
     zoning: string;
     pid: string;
+}
+
+export interface Coord {
+    x: number;
+    y: number;
+}
+
+export interface Box {
+    x: number[];
+    y: number[];
+}
+
+export interface Zone {
+    type: string;
+    codes: string[];
+    color: string;
 }

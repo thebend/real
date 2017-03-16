@@ -1,13 +1,12 @@
-import 'core-js/library/es6/array';
-import * as d3 from 'd3';
-import {LandProperty, Zone, Box, Coord} from './types';
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("core-js/library/es6/array");
+const d3 = require("d3");
 var map;
 var histogramSvg;
-var allData: LandProperty[]; // the entire data set, which can be filtered to affect mapData
-var mapData: LandProperty[]; // the potentially filtered data set actually used to render the map
-
-var zones: Zone[] = [
+var allData; // the entire data set, which can be filtered to affect mapData
+var mapData; // the potentially filtered data set actually used to render the map
+var zones = [
     {
         "type": "residential",
         "codes": ['R1', 'R1-A', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'RS1'],
@@ -30,9 +29,10 @@ var zones: Zone[] = [
         "color": "slategrey"
     }
 ];
-function getZoneColor(d: LandProperty) {
+function getZoneColor(d) {
     var zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
-    if (zone) return zone.color;
+    if (zone)
+        return zone.color;
     return "lightgray";
 }
 function doZoneColor() {
@@ -42,14 +42,13 @@ function doZoneColor() {
 }
 var today = new Date();
 var currentYear = today.getFullYear();
-function getAge(d: LandProperty) {
+function getAge(d) {
     return d.year_built ? d.year_built - currentYear : null;
 }
-
 // domain is 980736 units wide, translates to roughly 5300 meters wide
 var metersPerUnit = 5300 / 980736;
-var meterAreaPerUnitArea = (5300**2) / (980736**2);
-function getArea(d: LandProperty) {
+var meterAreaPerUnitArea = (Math.pow(5300, 2)) / (Math.pow(980736, 2));
+function getArea(d) {
     var vertices = d.geometry;
     var total = 0;
     for (var i = 0, l = vertices.length; i < l; i++) {
@@ -57,113 +56,100 @@ function getArea(d: LandProperty) {
         var addY = vertices[i == vertices.length - 1 ? 0 : i + 1][1];
         var subX = vertices[i == vertices.length - 1 ? 0 : i + 1][0];
         var subY = vertices[i][1];
-
         total += (addX * addY * 0.5);
         total -= (subX * subY * 0.5);
     }
     return Math.abs(total) * meterAreaPerUnitArea;
 }
-function getLandValueDensity(d: LandProperty) {
+function getLandValueDensity(d) {
     var area = getArea(d);
     // some properties have invalid areas with just a small diamond placeholder
-    if (!d.total_assessed_land) return null;
+    if (!d.total_assessed_land)
+        return null;
     // 60.3-60.5m areas are just placeholders with no accurate size
-    if (area >= 60 && area <= 61) return null;
+    if (area >= 60 && area <= 61)
+        return null;
     return d.total_assessed_land / area;
 }
-
-function getXAssessmentChange(current: number, previous: number) {
+function getXAssessmentChange(current, previous) {
     if (current && previous) {
         var ratio = current / previous;
-        if (ratio > 0.5 && ratio < 2.5) return ratio;
+        if (ratio > 0.5 && ratio < 2.5)
+            return ratio;
     }
     return 1;
 }
-function getBuildingAssessmentChange(d: LandProperty) {
+function getBuildingAssessmentChange(d) {
     // use clamping here
     // deal with outliers better than this!
     return getXAssessmentChange(d.total_assessed_building, d.previous_building);
 }
-function getLandAssessmentChange(d: LandProperty) {
+function getLandAssessmentChange(d) {
     // use clamping here
     // deal with outliers better than this!
     return getXAssessmentChange(d.total_assessed_land, d.previous_land);
 }
-
-function getBedrooms(d: LandProperty) {
+function getBedrooms(d) {
     return d.bedrooms;
 }
-
-function getBathrooms(d: LandProperty) {
+function getBathrooms(d) {
     return d.bathrooms;
 }
-
-function getIdentity(d: LandProperty) {
+function getIdentity(d) {
     return d.oid_evbc_b64;
 }
-
 var currencyFormat = d3.format('$,');
-var dragStartPos: number[];
-var tooltipTemplate: HandlebarsTemplateDelegate;
-
-$(function() {
+var dragStartPos;
+var tooltipTemplate;
+$(function () {
     map = d3.select('#map svg').
-        on('mousedown', function() {
-            dragStartPos = [d3.event.clientX, d3.event.clientY];
-        }).
-        on('mouseup', function() {
-            var dragEndPos = [d3.event.clientX, d3.event.clientY];
-
-            var x = [xs.invert(dragStartPos[0]), xs.invert(dragEndPos[0])];
-            var y = [ys.invert(dragStartPos[1]), ys.invert(dragEndPos[1])];
-            resize({"x": x, "y": y});
-        });
+        on('mousedown', function () {
+        dragStartPos = [d3.event.clientX, d3.event.clientY];
+    }).
+        on('mouseup', function () {
+        var dragEndPos = [d3.event.clientX, d3.event.clientY];
+        var x = [xs.invert(dragStartPos[0]), xs.invert(dragEndPos[0])];
+        var y = [ys.invert(dragStartPos[1]), ys.invert(dragEndPos[1])];
+        resize({ "x": x, "y": y });
+    });
     histogramSvg = d3.select('#histogram svg');
-    Handlebars.registerHelper('currencyFormat', function(value) {
+    Handlebars.registerHelper('currencyFormat', function (value) {
         return currencyFormat(value);
     });
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
-
 });
-
-function getGlyph(before: number, after: number) {
+function getGlyph(before, after) {
     return after - before > 0 ? 'glyphicon-arrow-up' : 'glyphicon-arrow-down';
 }
-
-function updateTooltip(d: LandProperty) {
+function updateTooltip(d) {
     d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
     d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
     d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
     d.area = Math.round(getArea(d));
     $('#tooltip').html(tooltipTemplate(d));
 }
-
-function displayData(data: LandProperty[]) {
-    data.forEach(function(d) {
+function displayData(data) {
+    data.forEach(function (d) {
         d.geometry = eval(d.geometry);
         d.sales_history = eval(d.sales_history);
     });
     allData = data;
     mapData = data;
-
     map.selectAll('polygon').
         data(data, getIdentity).enter().
         append('polygon').
         on('mouseover', updateTooltip);
-
     resize();
-
     $('#land-value').click();
 }
 var xs = d3.scaleLinear();
-var ys = d3.scaleLinear();        
-function getPoints(d: LandProperty) {
-    return d.geometry.map(p => xs(p[0])+','+ys(p[1])).join(' ');
+var ys = d3.scaleLinear();
+function getPoints(d) {
+    return d.geometry.map(p => xs(p[0]) + ',' + ys(p[1])).join(' ');
 }
-
-function getDomain(range, suggestedDomain: Box) {
+function getDomain(range, suggestedDomain) {
     var points = [];
-    mapData.forEach(function(dataPoint) {
+    mapData.forEach(function (dataPoint) {
         points = points.concat(dataPoint.geometry);
     });
     var domainX;
@@ -171,22 +157,22 @@ function getDomain(range, suggestedDomain: Box) {
     if (suggestedDomain) {
         domainX = suggestedDomain.x;
         domainY = suggestedDomain.y;
-    } else {
+    }
+    else {
         domainX = d3.extent(points.map(p => p[0]));
         domainY = d3.extent(points.map(p => p[1]));
     }
     var domainWidth = domainX[1] - domainX[0];
     var domainHeight = domainY[1] - domainY[0];
     var domainSlope = domainWidth / domainHeight;
-    
     var rangeSlope = range.height / range.width;
-
     if (rangeSlope > domainSlope) {
         var newDomainHeight = domainWidth * rangeSlope;
         var diffPerSide = (newDomainHeight - domainHeight) / 2;
         domainY[0] -= diffPerSide;
         domainY[1] += diffPerSide;
-    } else if (domainSlope > rangeSlope) {
+    }
+    else if (domainSlope > rangeSlope) {
         var newDomainWidth = domainHeight / rangeSlope;
         var diffPerSide = (newDomainWidth - domainWidth) / 2;
         domainX[0] -= diffPerSide;
@@ -195,26 +181,24 @@ function getDomain(range, suggestedDomain: Box) {
     return {
         "x": domainX,
         "y": domainY
-    }
+    };
 }
-
-function resize(suggestedDomain?: Box) {
+function resize(suggestedDomain) {
     var range = map.node().getBoundingClientRect();
     var domain = getDomain(range, suggestedDomain);
     xs.domain(domain.x).range([0, range.width]);
     ys.domain(domain.y).range([range.height, 0]);
     map.selectAll('polygon').attr('points', getPoints);
 }
-var colorDataFunction: (d: LandProperty) => number;
-var colorData: number[];
-var colorScale = d3.scaleLinear<number | string>();
+var colorDataFunction;
+var colorData;
+var colorScale = d3.scaleLinear();
 var isUpdatingUI = false;
-
-function setNewColorParameters(dataFunction: (d: LandProperty) => number, scaleType, scaleRange) {
+function setNewColorParameters(dataFunction, scaleType, scaleRange) {
     isUpdatingUI = true;
     simpleRange = scaleRange;
     colorScale.range(scaleRange);
-    $('#'+scaleType).click();
+    $('#' + scaleType).click();
     updateColorData(dataFunction);
     $('#simple').click();
     $('#scale label').removeClass('disabled');
@@ -225,7 +209,7 @@ function doBuildingValueChangeColor() {
     isUpdatingUI = true;
     $('#simple').click();
     $('#linear').click();
-    colorScale.range(['rgb(191,0,0)','rgb(127,127,127)','rgb(0,191,0)']);
+    colorScale.range(['rgb(191,0,0)', 'rgb(127,127,127)', 'rgb(0,191,0)']);
     updateColorData(getBuildingAssessmentChange);
     colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
     $('#scale label').addClass('disabled');
@@ -236,29 +220,29 @@ function doLandValueChangeColor() {
     isUpdatingUI = true;
     $('#simple').click();
     $('#linear').click();
-    colorScale.range(['rgb(191,0,0)','rgb(127,127,127)','rgb(0,191,0)']);
+    colorScale.range(['rgb(191,0,0)', 'rgb(127,127,127)', 'rgb(0,191,0)']);
     updateColorData(getLandAssessmentChange);
     colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
     $('#scale label').addClass('disabled');
     recolor();
     // setNewColorParameters(getTotalAssessmentChange, 'log', ['rgb(191,0,0)', 'rgb(0,191,0)']);
 }
-
-function updateColorData(dataFunction: (d: LandProperty) => number) {
+function updateColorData(dataFunction) {
     colorDataFunction = dataFunction;
     colorData = mapData.map(dataFunction);
     if (colorScale.range().length == 3) {
         colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
-    } else {
+    }
+    else {
         colorScale.domain(d3.extent(colorData));
     }
 }
-
-function setNewColorScale(scale: d3.ScaleLinear<any,any>) {
+function setNewColorScale(scale) {
     updateColorScale(scale);
-    if (!isUpdatingUI) recolor();
+    if (!isUpdatingUI)
+        recolor();
 }
-function updateColorScale(scale: d3.ScaleLinear<any,any>) {
+function updateColorScale(scale) {
     // Replace scale with a new one using same domain and range,
     // used to change from linear to log types
     colorScale = scale.
@@ -266,33 +250,37 @@ function updateColorScale(scale: d3.ScaleLinear<any,any>) {
         range(colorScale.range());
 }
 var useViridis = false;
-var simpleRange: (string|number)[];
+var simpleRange;
 function setScaleColor(scaleColor) {
     useViridis = scaleColor == 'viridis';
     if (useViridis) {
         simpleRange = colorScale.range();
-        colorScale.range([0,1]);
-    } else {
+        colorScale.range([0, 1]);
+    }
+    else {
         colorScale.range(simpleRange);
     }
-    if (!isUpdatingUI) recolor();
+    if (!isUpdatingUI)
+        recolor();
 }
-
 function recolor() {
     isUpdatingUI = false;
     map.selectAll('polygon').
-        style('fill', function(d) {
-            var val = colorDataFunction(d);
-            if (!val) return '#444';
-            if (useViridis) return d3.interpolateViridis(<number>colorScale(val));
-            else return colorScale(val);
-        });
+        style('fill', function (d) {
+        var val = colorDataFunction(d);
+        if (!val)
+            return '#444';
+        if (useViridis)
+            return d3.interpolateViridis(colorScale(val));
+        else
+            return colorScale(val);
+    });
     drawHistogram(colorData);
 }
-
-var filterAddressTimeout: number;
+var filterAddressTimeout;
 function updateAddressFilter() {
-    if (filterAddressTimeout) clearTimeout(filterAddressTimeout);
+    if (filterAddressTimeout)
+        clearTimeout(filterAddressTimeout);
     filterAddressTimeout = setTimeout(filterAddress, 500);
 }
 function filterAddress() {
@@ -304,13 +292,13 @@ function filterAddress() {
             $('#search').addClass('has-success').removeClass('has-error');
             $('#search .glyphicon').addClass('glyphicon-ok').removeClass('glyphicon-remove');
             targets.style('stroke', 'white');
-        } else {
+        }
+        else {
             $('#search').addClass('has-error').removeClass('has-success');
             $('#search .glyphicon').addClass('glyphicon-remove').removeClass('glyphicon-ok');
         }
     }
 }
-
 function toggleFilter(btn) {
     btn = $(btn);
     var zoneTarget = btn.attr('id');
@@ -321,7 +309,8 @@ function toggleFilter(btn) {
         map.selectAll('polygon').filter(isFilterZone).style('display', 'none');
         updateColorData(colorDataFunction);
         recolor();
-    } else {
+    }
+    else {
         mapData = mapData.concat(allData.filter(isFilterZone));
         updateColorData(colorDataFunction);
         recolor();
@@ -331,20 +320,19 @@ function toggleFilter(btn) {
     // recalculate data, scales
     // redraw
 }
-
 var currentYear = new Date().getFullYear();
 var BAR_THICKNESS = 6;
 var legendPrecision = d3.format('.2f');
-function drawHistogram(data: number[]) {
+function drawHistogram(data) {
     var yearScale = d3.scaleLog().domain(d3.extent(data));
     var histogram = d3.histogram().thresholds(yearScale.ticks(20));
     var bins = histogram(data);
     var boundary = histogramSvg.node().getBoundingClientRect();
     var barAreaHeight = boundary.height / bins.length;
-    var maxSize = d3.max(bins.map(function(i) { return i.length; }));
+    var maxSize = d3.max(bins.map(function (i) { return i.length; }));
     histogramSvg.selectAll('g').remove();
     var barGroups = histogramSvg.selectAll('g').data(bins).enter().append('g').
-        attr('transform', (d, i) => 'translate(0,'+(boundary.height / bins.length * i)+')');
+        attr('transform', (d, i) => 'translate(0,' + (boundary.height / bins.length * i) + ')');
     barGroups.append('rect').
         attr('width', d => boundary.width / maxSize * d.length).
         attr('height', BAR_THICKNESS).
@@ -354,7 +342,6 @@ function drawHistogram(data: number[]) {
         attr('y', barAreaHeight / 2 - (2 * BAR_THICKNESS)).
         text(d => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
 }
-
 // function getCurrentUISettings() {
 //     return {
 //         "scale": $('#scale .active input')[0].getAttribute('name'),
@@ -364,7 +351,6 @@ function drawHistogram(data: number[]) {
 //         "zoom": null // take each polygon's backing data and find the domain and range
 //     }
 // }
-
 // var renderSettings = {
 //     "land-value": {
 //         "scale": "linear",

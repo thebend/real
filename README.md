@@ -33,6 +33,7 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
 * [Gulp CDNizer](https://www.npmjs.com/package/gulp-cdnizer)
 * [Linting TypeScript with Webpack](https://templecoding.com/blog/2016/04/07/linting-typescript-with-webpack/)
 * [DefinitelyTyped TypeScript type definition catalog](https://github.com/DefinitelyTyped/DefinitelyTyped)
+* [Copying static assets in Webpack](http://stackoverflow.com/questions/27639005/how-to-copy-static-files-to-build-directory-with-webpack)
 
 # Questions
 * Do I put my dev stuff into a subdirectory?  Looks like /app/ and /dist/ folders are common.
@@ -54,6 +55,7 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
  * PostCSS?
  * Webpack?  Maybe if I start breaking .ts code up?
  * Gulp?  No, used for a while but don't need it at this point
+* Webpack has no built-in support for just copying static files over.  Is that not its purpose?  Does it really want to manipulate EVERYTHING?
 
 # Problems and Solutions
 * Use local verbose libraries in dev, minified CDN versions in production
@@ -72,6 +74,16 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
 * Branch
 * Install webpack
 * Get basic config file
+ * Working, but including es6 array polyfill, jQuery and D3 (no bootstrap) up to 765 KB!
+ * What happened to Handlebars?  Why doesn't TypeScript throw error?
+  * require.extensions is not supported by webpack. Use a loader instead.
+  * Module not found: Error: Can't resolve 'fs' in '...\node_modules\handlebars\lib'
+ * Don't need to import jQuery for TypeScript either?  Just D3 needs it?
+* babel-polyfill incorporates core-js/es6 as well as transforms generator syntax.  Look at that instead?
+* Integrate source maps?  First just get this working!
+  * webpack.config.js: devtool: 'inline-source-map'
+  * webpack.config.js: module.rules[n].loader: 'source-map-loader'
+  * tsconfig.json: sourceMap: true
 * Commit
 * Install plugins
 * Add require() code
