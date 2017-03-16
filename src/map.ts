@@ -50,19 +50,31 @@ interface Zone {
     color: string;
 }
 
+const color = {
+    gray: 'rgb(191,191,191)',
+    green: 'rgb(0,191,0)',
+    red: 'rgb(191,0,0)'
+}
+
+var currencyFormat = d3.format('$,');
+Handlebars.registerHelper('currencyFormat', currencyFormat);
+
 var map;
 var histogramSvg;
+var tooltip: JQuery;
+
 var allData: LandProperty[]; // the entire data set, which can be filtered to affect mapData
 var mapData: LandProperty[]; // the potentially filtered data set actually used to render the map
 
-var currencyFormat = d3.format('$,');
 var dragStartPos: [number,number];
 var tooltipTemplate: HandlebarsTemplateDelegate;
 var xs = d3.scaleLinear();
 var ys = d3.scaleLinear();
+
 var colorDataFunction: (d: LandProperty) => number;
 var colorData: number[];
 var colorScale = d3.scaleLinear<number | string>();
+
 var isUpdatingUI = false;
 var useViridis = false;
 var simpleRange: (string|number)[];
@@ -104,7 +116,7 @@ function doZoneColor() {
 
 function getAgeCalculator(year: number) {
     return function(d: LandProperty) {
-        return d.year_built ? d.year_built - year : null;
+        return d.year_built ? year - d.year_built : null;
     }
 }
 var getAge = getAgeCalculator(new Date().getFullYear());
@@ -153,10 +165,6 @@ function getGlyph(before: number, after: number) {
     return 'glyphicon-arrow-' + (after - before > 0 ? 'up' : 'down');
 }
 
-function updateTooltip(d: LandProperty) {
-    $('#tooltip').html(tooltipTemplate(d));
-}
-
 function displayData(data: LandProperty[]) {
     data.forEach(function(d) {
         d.points = eval(d.geometry);
@@ -174,7 +182,7 @@ function displayData(data: LandProperty[]) {
     map.selectAll('polygon').
         data(data, d => d.oid_evbc_b64).enter().
         append('polygon').
-        on('mouseover', updateTooltip);
+        on('mouseover', d => tooltip.html(tooltipTemplate(d)));
 
     resize();
 
@@ -241,7 +249,7 @@ function doValueChangeColor(accessor: (d: LandProperty) => number) {
     isUpdatingUI = true;
     $('#simple').click();
     $('#linear').click();
-    colorScale.range(['rgb(191,0,0)','rgb(127,127,127)','rgb(0,191,0)']);
+    colorScale.range([color.red, color.gray, color.green]);
     updateColorData(accessor);
     colorScale.domain([d3.min(colorData), 1, d3.max(colorData)]);
     $('#scale label').addClass('disabled');
@@ -369,8 +377,8 @@ $(function() {
             resize({"x": x, "y": y});
         });
     histogramSvg = d3.select('#histogram svg');
-    Handlebars.registerHelper('currencyFormat', currencyFormat);
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
+    tooltip = $('#tooltip');
 
     // configure UI events
     'residential commercial industrial agricultural public'.split(' ').forEach(function(id) {
@@ -381,14 +389,14 @@ $(function() {
         "log": () => setNewColorScale(d3.scaleLog()),
         "simple": () => setScaleColor('simple'),
         "viridis": () => setScaleColor('viridis'),
-        "land-value": () => setNewColorParameters(getLandValueDensity, 'linear', ['rgb(191,191,191)', 'rgb(0,191,0)']),
-        "age": () => setNewColorParameters(getAge, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']),
-        "total-value": () => setNewColorParameters(d => d.total_assessed_value, 'log', ['rgb(191,191,191)', 'rgb(0,191,0)']),
+        "land-value": () => setNewColorParameters(getLandValueDensity, 'linear', [color.gray, color.green]),
+        "age": () => setNewColorParameters(getAge, 'log', [color.green, color.gray]),
+        "total-value": () => setNewColorParameters(d => d.total_assessed_value, 'log', [color.gray, color.green]),
         "change-building": () => doValueChangeColor(getBuildingAssessmentChange),
         "change-land": () => doValueChangeColor(getLandAssessmentChange),
         "zone-type": doZoneColor,
-        "bedroom": () => setNewColorParameters(d => d.bedrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)']),
-        "bathroom": () => setNewColorParameters(d => d.bathrooms, 'log', ['rgb(0,191,0)', 'rgb(191,191,191)'])
+        "bedroom": () => setNewColorParameters(d => d.bedrooms, 'log', [color.green, color.gray]),
+        "bathroom": () => setNewColorParameters(d => d.bathrooms, 'log', [color.green, color.gray])
     }
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
