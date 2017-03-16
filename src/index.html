@@ -117,7 +117,6 @@
                     <tr><th></th><th>Current</th><th>Previous</th></tr>
                 </thead>
                 <tbody>
-                    <!-- must set currency format -->
                     <tr><th>Land</th>
                         <td>{{ currencyFormat total_assessed_land }} <span class="glyphicon {{ land_glyph }}"></span></td>
                         <td>{{ currencyFormat previous_land }}</td>
@@ -144,8 +143,5 @@
         <article id="tooltip"></article>
     </section>
 </body>
-<script>
-    d3.csv('terrace.csv', displayData);
-</script>
 
 </html>

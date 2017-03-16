@@ -400,3 +400,5 @@ function drawHistogram(data: number[]) {
 // function render(settings) {
 //     var scale = settings.scale == 'linear' ? d3.scaleLinear() : d3.scaleLog();
 // }
+
+d3.csv('terrace.csv', displayData);
