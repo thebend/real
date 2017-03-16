@@ -1,6 +1,7 @@
 import 'core-js/library/es6/array';
-import * as d3 from 'd3';
 import {LandProperty, Zone, Box, Coord} from './types';
+// import * as d3 from 'd3';
+import * as d3 from './d3-bundle';
 
 var map;
 var histogramSvg;
