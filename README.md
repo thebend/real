@@ -73,19 +73,14 @@ In theory I get what most of the other things do, kind of.  Throw in my dabbling
 # Webpack Migration
 * Branch
 * Install webpack
-* Get basic config file
  * Working, but including es6 array polyfill, jQuery and D3 (no bootstrap) up to 765 KB!
  * What happened to Handlebars?  Why doesn't TypeScript throw error?
   * require.extensions is not supported by webpack. Use a loader instead.
   * Module not found: Error: Can't resolve 'fs' in '...\node_modules\handlebars\lib'
  * Don't need to import jQuery for TypeScript either?  Just D3 needs it?
+  * "In TypeScript, just as in ECMAScript 2015, any file containing a top-level import or export is considered a module."  If I have no imports, d3 works fine.
 * babel-polyfill incorporates core-js/es6 as well as transforms generator syntax.  Look at that instead?
 * Integrate source maps?  First just get this working!
-  * webpack.config.js: devtool: 'inline-source-map'
+  * webpack.config.js: devtool: 'source-map'
   * webpack.config.js: module.rules[n].loader: 'source-map-loader'
   * tsconfig.json: sourceMap: true
-* Commit
-* Install plugins
-* Add require() code
-* Test
-* Commit
