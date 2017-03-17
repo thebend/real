@@ -16,7 +16,8 @@ export interface LandProperty {
     year_built: number;
     address: string;
     
-    geometry: any;
+    geometry: string;
+    points?: number[][];
     area?: number;
 
     bedrooms: number;

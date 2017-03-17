@@ -8,7 +8,6 @@
     "@types/d3": "^4.7.0",
     "@types/handlebars": "^4.0.32",
     "@types/jquery": "^2.0.41",
-    "d3": "^4.7.3",
     "ts-loader": "^2.0.1",
     "typescript": "^2.2.1",
     "webpack": "^2.2.1"
