@@ -73,15 +73,15 @@ var zones: Zone[] = [
         "color": "slategrey"
     }
 ];
-function getZoneColor(d: LandProperty) {
-    var zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
-    return zone ? zone.color : "lightgray";
-}
-
 const color = {
     gray: 'rgb(191,191,191)',
+    lightgray: 'rgb(211,211,211)',
     green: 'rgb(0,191,0)',
     red: 'rgb(191,0,0)'
+}
+
+function getZoneColor(d: LandProperty) {
+    return d.zone ? d.zone.color : color.gray;
 }
 
 var currencyFormat = d3.format('$,');
