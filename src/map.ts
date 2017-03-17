@@ -172,9 +172,7 @@ class MapUI {
     scaledPointString(point: [number,number]): string {
         return this.xScale(point[0])+','+this.yScale(point[1]);
     }
-    /**
-     * Return a string in "1,2 3,4 5,6" format from a property's points array
-     */
+    /** Return a string in "1,2 3,4 5,6" format from a property's points array */
     getPointString(d: LandProperty): string {
         return d.points.map(this.scaledPointString).join(' ');
     }
@@ -291,15 +289,11 @@ class MapUI {
         if (!this.isUpdatingUI) this.recolor();
     }
     
-    // static readonly colorScaleLinear = d3.scaleLinear<string, string>();
-    // static readonly colorScaleLog = d3.scaleLog<string, string>();
     /**
      * Replace scale with a new one using the same domain and range.
      * Used to change from linear to log scale type.
      */
     updateFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
-        // Replace scale with a new one using same domain and range,
-        // used to change from linear to log types
         this.focusedDataScale = scale.
             domain(scale.domain()).
             range(scale.range());
