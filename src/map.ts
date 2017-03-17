@@ -86,20 +86,15 @@ function getZoneColor(d: LandProperty) {
 
 var currencyFormat = d3.format('$,');
 Handlebars.registerHelper('currencyFormat', currencyFormat);
-
 var tooltipTemplate: HandlebarsTemplateDelegate;
 
 class Domain {
     x: [number, number];
     y: [number, number];
-    width: number;
-    height: number;
     
     constructor(x: [number, number], y: [number, number]) {
-        this.x = x;
-        this.y = y;
-        this.width = x[1] - x[0];
-        this.height = y[1] - y[0];
+        this.x = d3.extent(x);
+        this.y = d3.extent(y);
     }
 
     static scaleSide(side: [number, number], difference: number) {
@@ -107,15 +102,15 @@ class Domain {
         side[0] -= difference;
         side[1] += difference;
     }
-    scaleToRatio(aspectRatio: number): Domain {
-        var domainRatio = this.width / this.height;
-
-        if (aspectRatio > domainRatio) {
-            Domain.scaleSide(this.y, this.width * aspectRatio - this.height);
-        } else if (domainRatio > aspectRatio) {
-            Domain.scaleSide(this.x, this.height / aspectRatio - this.width);
+    scaleToRatio(targetRatio: number) {
+        var width = this.x[1] - this.x[0];
+        var height = this.y[1] - this.y[0];
+        var thisRatio = height / width;
+        if (thisRatio > targetRatio) { // this is too tall, must widen
+            Domain.scaleSide(this.x, height / targetRatio - width);
+        } else { // this is too wide, must heighten
+            Domain.scaleSide(this.y, width * targetRatio - height);
         }
-        return this;
     }
 }
 
@@ -140,7 +135,7 @@ class MapUI {
     getColorInterpolator() {
         return this.isViridis ? d3.interpolateViridis : this.colorInterpolator;
     }
-    colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator);
+    colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator.bind(this));
     
     mapD3: d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>;
     histogramD3: d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>;
@@ -158,8 +153,8 @@ class MapUI {
     }
     constructor(mapElement: SVGSVGElement, histogramElement: SVGSVGElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
         this.mapD3 = <d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
-            on('mousedown', () => this.mouseDownEvent = d3.event).
-            on('mouseup', this.zoom);
+            on('mousedown', (() => this.mouseDownEvent = d3.event).bind(this)).
+            on('mouseup', this.zoom.bind(this));
 
         this.histogramD3 = <d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
@@ -174,7 +169,7 @@ class MapUI {
     }
     /** Return a string in "1,2 3,4 5,6" format from a property's points array */
     getPointString(d: LandProperty): string {
-        return d.points.map(this.scaledPointString).join(' ');
+        return d.points.map(this.scaledPointString.bind(this)).join(' ');
     }
 
     static getDomain(data: LandProperty[]): Domain {
@@ -189,12 +184,13 @@ class MapUI {
      * Redraw the map, to be called after a resize event or after zooming.
      * @param domain - the specific extent of the backing data we want to render
      */
-    resize(domain: Domain) {
+    resize(domain?: Domain) {
+        domain = domain || MapUI.getDomain(this.activeData);
         var range = this.mapD3.node().getBoundingClientRect();
-        domain.scaleToRatio(range.width / range.height);
+        domain.scaleToRatio(range.height / range.width);
         this.xScale.domain(domain.x).range([0, range.width]);
         this.yScale.domain(domain.y).range([range.height, 0]);
-        this.mapD3.selectAll('polygon').attr('points', this.getPointString);
+        this.mapD3.selectAll('polygon').attr('points', this.getPointString.bind(this));
     }
 
     setData(data: LandProperty[]) {
@@ -206,9 +202,10 @@ class MapUI {
             append('polygon').
             on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
 
-        this.resize(MapUI.getDomain(this.activeData));
+        this.resize();
     }
-
+    
+    static readonly legendPrecision = d3.format('.2f');
     static readonly BAR_THICKNESS = 6;
     drawHistogram() {
         var yearScale = d3.scaleLog().domain(d3.extent(this.focusedData));
@@ -227,7 +224,7 @@ class MapUI {
             attr('y', (barAreaHeight - MapUI.BAR_THICKNESS) / 2);
         barGroups.append('text').
             attr('y', barAreaHeight / 2 - (2 * MapUI.BAR_THICKNESS)).
-            text(d => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
+            text(d => MapUI.legendPrecision(d.x0) + '-' + MapUI.legendPrecision(d.x1));
     }
 
     // pay attention to this - doubling up scales!
@@ -238,7 +235,7 @@ class MapUI {
 
     recolor() {
         this.isUpdatingUI = false;
-        this.mapD3.selectAll('polygon').style('fill', this.getColor);
+        this.mapD3.selectAll('polygon').style('fill', this.getColor.bind(this));
         this.drawHistogram();
     }
 
@@ -303,8 +300,8 @@ class MapUI {
         this.isUpdatingUI = true;
         this.colorInterpolator = d3.interpolateRgbBasis(scaleRange);
         this.isViridis = false;
-        $('#'+scaleType).click();
         this.updateFocusedData(accessor);
+        $('#'+scaleType).click();
         $('#simple').click();
         $('#scale label').removeClass('disabled');
         $('#color label').removeClass('disabled');
@@ -347,10 +344,7 @@ class MapUI {
     }
 }
 
-var legendPrecision = d3.format('.2f');
-
 var mapUi: MapUI;
-
 function loadData(data: LandProperty[]) {
     data.forEach(function(d) {
         d.points = eval(d.geometry);
@@ -434,7 +428,7 @@ $(function() {
         $('#'+id).on('click', () => mapUi.toggleFilter(document.getElementById(id)));
     });
     const clickActions = {
-        "zoomout": () => mapUi.resize(MapUI.getDomain(mapUi.activeData)),
+        "zoomout": () => mapUi.resize(),
         "linear": () => mapUi.setNewFocusedDataScale(d3.scaleLinear()),
         "log": () => mapUi.setNewFocusedDataScale(d3.scaleLog()),
         "simple": () => mapUi.setViridisColor(false),
@@ -451,6 +445,5 @@ $(function() {
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
     }
+    d3.csv('terrace.csv', loadData);
 });
-
-d3.csv('terrace.csv', loadData);
