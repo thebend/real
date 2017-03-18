@@ -87,6 +87,7 @@ function getZoneColor(d: LandProperty) {
 var currencyFormat = d3.format('$,');
 Handlebars.registerHelper('currencyFormat', currencyFormat);
 var tooltipTemplate: HandlebarsTemplateDelegate;
+var scaleControls: JQuery;
 
 class Domain {
     x: [number, number];
@@ -115,30 +116,26 @@ class Domain {
 }
 
 class MapUI {
-    propertyData: LandProperty[];
-    activeData: LandProperty[];
-
-    dragStartPosition: [number, number];
     xScale = d3.scaleLinear();
     yScale = d3.scaleLinear();
 
+    propertyData: LandProperty[]; // all available property data
+    activeData: LandProperty[]; // data that has not currently been filtered
     focusedDataAccessor: (record: LandProperty) => number;
-    focusedData: number[];
+    focusedData: number[]; // the specific attribute actively being analyzed
     focusedDataScale: d3.ScaleContinuousNumeric<number, number> = d3.scaleLinear<number, number>();
 
     isUpdatingUI = false;
-    
-    // switching from linear to log scale is still really messed up, in progress of reworking
-    colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
 
-    isViridis = false;
+    isViridis = false;    
+    colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
     getColorInterpolator() {
         return this.isViridis ? d3.interpolateViridis : this.colorInterpolator;
     }
     colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator.bind(this));
     
-    mapD3: d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>;
-    histogramD3: d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>;
+    mapD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
+    histogramD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
     tooltip: JQuery;
     search: JQuery;
     searchInput: JQuery;
@@ -151,12 +148,12 @@ class MapUI {
             [this.yScale.invert(this.mouseDownEvent.clientY), this.yScale.invert(d3.event.clientY)]
         ));
     }
-    constructor(mapElement: SVGSVGElement, histogramElement: SVGSVGElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
-        this.mapD3 = <d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
+    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
+        this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', (() => this.mouseDownEvent = d3.event).bind(this)).
             on('mouseup', this.zoom.bind(this));
 
-        this.histogramD3 = <d3.Selection<SVGSVGElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
+        this.histogramD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
         
         this.search = $(searchElement);
@@ -174,10 +171,7 @@ class MapUI {
 
     static getDomain(data: LandProperty[]): Domain {
         var points = d3.merge(data.map(p => p.points));
-        return new Domain(
-            d3.extent(points.map(p => p[0])),
-            d3.extent(points.map(p => p[1]))
-        );
+        return new Domain(d3.extent(points, p => p[0]), d3.extent(points, p => p[1]));
     }
 
     /**
@@ -196,10 +190,8 @@ class MapUI {
     setData(data: LandProperty[]) {
         this.propertyData = data;
         this.activeData = data;
-
         this.mapD3.selectAll('polygon').
-            data(data, getIdentity).enter().
-            append('polygon').
+            data(data, getIdentity).enter().append('polygon').
             on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
 
         this.resize();
@@ -208,12 +200,11 @@ class MapUI {
     static readonly legendPrecision = d3.format('.2f');
     static readonly BAR_THICKNESS = 6;
     drawHistogram() {
-        var yearScale = d3.scaleLog().domain(d3.extent(this.focusedData));
-        var histogram = d3.histogram().thresholds(yearScale.ticks(20));
+        var histogram = d3.histogram().thresholds(this.focusedDataScale.ticks(20));
         var bins = histogram(this.focusedData);
         var boundary = this.histogramD3.node().getBoundingClientRect();
         var barAreaHeight = boundary.height / bins.length;
-        var maxSize = d3.max(bins.map(i => i.length));
+        var maxSize = d3.max(bins, i => i.length);
         this.histogramD3.selectAll('g').remove();
         var barGroups = this.histogramD3.selectAll('g').data(bins).enter().append('g').
             attr('transform', (d, i) => 'translate(0,'+(boundary.height / bins.length * i)+')');
@@ -242,81 +233,60 @@ class MapUI {
     doZoneColor() {
         // why do I need to manually set the CSS classes on bootstrap buttons?
         // don't want to be touching buttons in this object
-        $('#scale label').addClass('disabled').removeClass('active');
-        $('#color label').addClass('disabled').removeClass('active');
+        scaleControls.addClass('disabled').removeClass('active');
         this.mapD3.selectAll('polygon').style('fill', getZoneColor);
     }
 
-    toggleFilter(btnElement: HTMLElement) {
-        var btn = $(btnElement);
-        var zoneTarget = btn.attr('id');
-        var filterZone = zones.find(z => z.type == zoneTarget);
-        function isFilterZone(d) { return d.zone == filterZone; }
-        if (btn.hasClass('active')) {
-            this.activeData = this.activeData.filter(isFilterZone);
-            this.mapD3.selectAll('polygon').filter(isFilterZone).style('display', 'none');
-            this.updateFocusedData();
-            this.recolor();
-        } else {
+    toggleFilter(zone: string, isActive: boolean) {
+        function isFilterZone(d: LandProperty) { return d.zone && d.zone.type == zone; }
+        if (isActive) {
             this.activeData = this.activeData.concat(this.propertyData.filter(isFilterZone));
-            this.updateFocusedData();
-            this.recolor();
-            this.mapD3.selectAll('polygon').filter(isFilterZone).style('display', null);
-        }
-        // track full data set and filtered data set separately
-        // recalculate data, scales
-        // redraw
-    }
-    
-    /** Get a new set of colour data based on the given accessor */
-    updateFocusedData(accessor?: (d: LandProperty) => number) {
-        if (accessor) {
-            this.focusedDataAccessor = accessor;
-        }
-        this.focusedData = this.activeData.map(this.focusedDataAccessor);
-        if (this.focusedDataScale.range().length == 3) {
-            this.focusedDataScale.domain([d3.min(this.focusedData), 1, d3.max(this.focusedData)]);
         } else {
-            this.focusedDataScale.domain(d3.extent(this.focusedData));
+            this.activeData = this.activeData.filter(d => !isFilterZone(d));
         }
+        this.mapD3.selectAll('polygon').filter(isFilterZone).style('display', isActive ? 'none' : null);
+        this.updateFocusedData();
+        this.recolor();
     }
     
-    setNewFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
-        this.updateFocusedDataScale(scale);
-        if (!this.isUpdatingUI) this.recolor();
+    /** Get a new set of focused data based on the given accessor */
+    updateFocusedData(accessor?: (d: LandProperty) => number) {
+        if (accessor) this.focusedDataAccessor = accessor;
+        this.focusedData = this.activeData.map(this.focusedDataAccessor);
+        var domain = d3.extent(this.focusedData);
+        if (this.focusedDataScale.range().length == 3) domain = [domain[0], 1, domain[1]];
+        this.focusedDataScale.domain(domain);
     }
     
     /**
      * Replace scale with a new one using the same domain and range.
      * Used to change from linear to log scale type.
      */
-    updateFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
+    setNewFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
         this.focusedDataScale = scale.
-            domain(scale.domain()).
-            range(scale.range());
+            domain(this.focusedDataScale.domain()).
+            range(this.focusedDataScale.range());
+        if (!this.isUpdatingUI) this.recolor();
     }
-
-    setNewColorParameters(accessor: (d: LandProperty) => number, scaleType: string, scaleRange: string[]) {
+    
+    /* THINK I NEED TO TRACK SCALE RANGE FOR COLOR PURPOSES */
+    setNewColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType?: string) {
         this.isUpdatingUI = true;
+        if (scaleRange.length == 3) {
+            scaleType = 'linear';
+            scaleControls.addClass('disabled');
+        } else {
+            scaleControls.removeClass('disabled');
+        }
+        this.updateFocusedData(accessor);
         this.colorInterpolator = d3.interpolateRgbBasis(scaleRange);
-        this.isViridis = false;
-        this.updateFocusedData(accessor);
-        $('#'+scaleType).click();
         $('#simple').click();
-        $('#scale label').removeClass('disabled');
-        $('#color label').removeClass('disabled');
+        $('#'+scaleType).click();
         this.recolor();
     }
-    // WHAT HAPPENS IF A 3-WAY RANGE SCALE USING NEW SYSTEM?
-    doValueChangeColor(accessor: (d: LandProperty) => number) {
-        this.isUpdatingUI = true;
-        $('#simple').click();
-        $('#linear').click();
-        this.updateFocusedData(accessor);
-        this.focusedDataScale.domain([d3.min(this.focusedData), 1, d3.max(this.focusedData)]);
-        this.colorInterpolator = d3.interpolateRgbBasis([color.red, color.gray, color.green]);
-        $('#scale label').addClass('disabled');
-        this.recolor();
+    
+    setValueChangeColor(accessor: (d: LandProperty) => number) {
+        this.setNewColorParameters(accessor, [color.red, color.gray, color.green]);
     }
 
     setViridisColor(isViridis: boolean) {
@@ -332,15 +302,14 @@ class MapUI {
         function hasMatchingAddress(d: LandProperty) {
             return d.address.indexOf(searchVal) > -1;
         }
-        var targets = this.mapD3.selectAll('polygon').filter(hasMatchingAddress);
-        if (targets.size() > 0) {
-            this.search.addClass('has-success').removeClass('has-error');
-            this.searchIcon.addClass('glyphicon-ok').removeClass('glyphicon-remove');
-            targets.style('stroke', 'white');
-        } else {
-            this.search.addClass('has-error').removeClass('has-success');
-            this.searchIcon.addClass('glyphicon-remove').removeClass('glyphicon-ok');
-        }
+        var isMatch = this.mapD3.selectAll('polygon').
+            filter(hasMatchingAddress).style('stroke', 'white').size() > 0;
+        this.search.
+            addClass(isMatch ? 'has-success' : 'has-error').
+            removeClass(isMatch ? 'has-error' : 'has-success');
+        this.searchIcon.
+            addClass(isMatch ? 'glyphicon-ok' : 'glyphicon-remove').
+            removeClass(isMatch ? 'glyphicon-remove' : 'glyphicon-ok');
     }
 }
 
@@ -359,16 +328,13 @@ function loadData(data: LandProperty[]) {
     });
 
     mapUi.setData(data);
-    
     $('#land-value').click();
 }
 
-function getAgeCalculator(year: number) {
-    return function(d: LandProperty) {
-        return d.year_built ? year - d.year_built : null;
-    }
+var currentYear = new Date().getFullYear();
+function getAge(d: LandProperty) {
+    return d.year_built ? currentYear - d.year_built : null;
 }
-var getAge = getAgeCalculator(new Date().getFullYear());
 
 // domain estimated at 980736 units wide, translates to roughly 5300 meters wide
 const METERS_PER_UNIT = 5300 / 980736;
@@ -415,32 +381,33 @@ function updateAddressFilter() {
 
 $(function() {
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
-
+    scaleControls = $('#scale label, #color label');
     mapUi = new MapUI(
-        document.getElementById('map').getElementsByTagName('svg')[0],
-        document.getElementById('histogram').getElementsByTagName('svg')[0],
+        $('#map svg')[0],
+        $('#histogram svg')[0],
         document.getElementById('tooltip'),
         document.getElementById('search')
     );
 
     // configure UI events
-    ['residential','commercial','industrial','agricultural','public'].forEach(function(id) {
-        $('#'+id).on('click', () => mapUi.toggleFilter(document.getElementById(id)));
+    ['residential','commercial','industrial','agricultural','public'].forEach(function(zone) {
+        var btn = $('#'+zone);
+        btn.on('click', () => mapUi.toggleFilter(zone, btn.hasClass('active')));
     });
     const clickActions = {
-        "zoomout": () => mapUi.resize(),
-        "linear": () => mapUi.setNewFocusedDataScale(d3.scaleLinear()),
-        "log": () => mapUi.setNewFocusedDataScale(d3.scaleLog()),
-        "simple": () => mapUi.setViridisColor(false),
-        "viridis": () => mapUi.setViridisColor(true),
-        "land-value": () => mapUi.setNewColorParameters(getLandValueDensity, 'linear', [color.gray, color.green]),
-        "age": () => mapUi.setNewColorParameters(getAge, 'log', [color.green, color.gray]),
-        "total-value": () => mapUi.setNewColorParameters(d => d.total_assessed_value, 'log', [color.gray, color.green]),
-        "change-building": () => mapUi.doValueChangeColor(getBuildingAssessmentChange),
-        "change-land": () => mapUi.doValueChangeColor(getLandAssessmentChange),
-        "zone-type": mapUi.doZoneColor,
-        "bedroom": () => mapUi.setNewColorParameters(d => d.bedrooms, 'log', [color.green, color.gray]),
-        "bathroom": () => mapUi.setNewColorParameters(d => d.bathrooms, 'log', [color.green, color.gray])
+        "zoomout":               mapUi.resize,
+        "linear":          () => mapUi.setNewFocusedDataScale(d3.scaleLinear()),
+        "log":             () => mapUi.setNewFocusedDataScale(d3.scaleLog()),
+        "simple":          () => mapUi.setViridisColor(false),
+        "viridis":         () => mapUi.setViridisColor(true),
+        "land-value":      () => mapUi.setNewColorParameters(getLandValueDensity, [color.gray, color.green], 'linear'),
+        "age":             () => mapUi.setNewColorParameters(getAge, [color.green, color.gray], 'log'),
+        "total-value":     () => mapUi.setNewColorParameters(d => d.total_assessed_value, [color.gray, color.green], 'log'),
+        "change-building": () => mapUi.setValueChangeColor(getBuildingAssessmentChange),
+        "change-land":     () => mapUi.setValueChangeColor(getLandAssessmentChange),
+        "zone-type":             mapUi.doZoneColor,
+        "bedroom":         () => mapUi.setNewColorParameters(d => d.bedrooms, [color.green, color.gray], 'log'),
+        "bathroom":        () => mapUi.setNewColorParameters(d => d.bathrooms, [color.green, color.gray], 'log')
     }
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
