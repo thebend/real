@@ -304,6 +304,7 @@ class MapUI {
         }
         var isMatch = this.mapD3.selectAll('polygon').
             filter(hasMatchingAddress).style('stroke', 'white').size() > 0;
+
         this.search.
             addClass(isMatch ? 'has-success' : 'has-error').
             removeClass(isMatch ? 'has-error' : 'has-success');
@@ -313,6 +314,16 @@ class MapUI {
     }
 }
 
+function getGlyph(before: number, after: number) {
+    return 'glyphicon-arrow-' + (after - before > 0 ? 'up' : 'down');
+}
+
+// domain estimated at 980736 units wide, translates to roughly 5300 meters wide
+const METERS_PER_UNIT = 5300 / 980736;
+const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
+function getArea(d: LandProperty) {
+    return Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA;
+}
 var mapUi: MapUI;
 function loadData(data: LandProperty[]) {
     data.forEach(function(d) {
@@ -336,12 +347,6 @@ function getAge(d: LandProperty) {
     return d.year_built ? currentYear - d.year_built : null;
 }
 
-// domain estimated at 980736 units wide, translates to roughly 5300 meters wide
-const METERS_PER_UNIT = 5300 / 980736;
-const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
-function getArea(d: LandProperty) {
-    return Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA;
-}
 function getLandValueDensity(d: LandProperty) {
     if (!d.total_assessed_land) return null;
     // 60.3-60.5m areas are just placeholders with no accurate size
@@ -357,16 +362,6 @@ function getChangeRatio(current: number, previous: number) {
         if (ratio > 0.5 && ratio < 2.5) return ratio;
     }
     return 1;
-}
-function getBuildingAssessmentChange(d: LandProperty) {
-    return getChangeRatio(d.total_assessed_building, d.previous_building);
-}
-function getLandAssessmentChange(d: LandProperty) {
-    return getChangeRatio(d.total_assessed_land, d.previous_land);
-}
-
-function getGlyph(before: number, after: number) {
-    return 'glyphicon-arrow-' + (after - before > 0 ? 'up' : 'down');
 }
 
 function getIdentity(d: LandProperty) {
@@ -403,8 +398,8 @@ $(function() {
         "land-value":      () => mapUi.setNewColorParameters(getLandValueDensity, [color.gray, color.green], 'linear'),
         "age":             () => mapUi.setNewColorParameters(getAge, [color.green, color.gray], 'log'),
         "total-value":     () => mapUi.setNewColorParameters(d => d.total_assessed_value, [color.gray, color.green], 'log'),
-        "change-building": () => mapUi.setValueChangeColor(getBuildingAssessmentChange),
-        "change-land":     () => mapUi.setValueChangeColor(getLandAssessmentChange),
+        "change-building": () => mapUi.setValueChangeColor(d => getChangeRatio(d.total_assessed_building, d.previous_building)),
+        "change-land":     () => mapUi.setValueChangeColor(d => getChangeRatio(d.total_assessed_land, d.previous_land)),
         "zone-type":             mapUi.doZoneColor,
         "bedroom":         () => mapUi.setNewColorParameters(d => d.bedrooms, [color.green, color.gray], 'log'),
         "bathroom":        () => mapUi.setNewColorParameters(d => d.bathrooms, [color.green, color.gray], 'log')
