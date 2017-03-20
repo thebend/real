@@ -129,10 +129,10 @@ class MapUI {
 
     isViridis = false;    
     colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
-    getColorInterpolator() {
+    getColorInterpolator = () => {
         return this.isViridis ? d3.interpolateViridis : this.colorInterpolator;
     }
-    colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator.bind(this));
+    colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator);
     
     mapD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
     histogramD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
@@ -142,7 +142,7 @@ class MapUI {
     searchIcon: JQuery;
 
     mouseDownEvent: any;
-    zoom() {
+    zoom = () => {
         this.resize(new Domain(
             [this.xScale.invert(this.mouseDownEvent.clientX), this.xScale.invert(d3.event.clientX)],
             [this.yScale.invert(this.mouseDownEvent.clientY), this.yScale.invert(d3.event.clientY)]
@@ -150,8 +150,8 @@ class MapUI {
     }
     constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
         this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
-            on('mousedown', (() => this.mouseDownEvent = d3.event).bind(this)).
-            on('mouseup', this.zoom.bind(this));
+            on('mousedown', () => this.mouseDownEvent = d3.event).
+            on('mouseup', this.zoom);
 
         this.histogramD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
@@ -161,12 +161,12 @@ class MapUI {
         this.searchIcon = this.search.find('.glyphicon');
     }
 
-    scaledPointString(point: [number,number]): string {
+    scaledPointString = (point: [number,number]): string => {
         return this.xScale(point[0])+','+this.yScale(point[1]);
     }
     /** Return a string in "1,2 3,4 5,6" format from a property's points array */
-    getPointString(d: LandProperty): string {
-        return d.points.map(this.scaledPointString.bind(this)).join(' ');
+    getPointString = (d: LandProperty): string => {
+        return d.points.map(this.scaledPointString).join(' ');
     }
 
     static getDomain(data: LandProperty[]): Domain {
@@ -184,7 +184,7 @@ class MapUI {
         domain.scaleToRatio(range.height / range.width);
         this.xScale.domain(domain.x).range([0, range.width]);
         this.yScale.domain(domain.y).range([range.height, 0]);
-        this.mapD3.selectAll('polygon').attr('points', this.getPointString.bind(this));
+        this.mapD3.selectAll('polygon').attr('points', this.getPointString);
     }
 
     setData(data: LandProperty[]) {
@@ -197,7 +197,7 @@ class MapUI {
         this.resize();
     }
     
-    static readonly legendPrecision = d3.format('.2f');
+    static readonly legendPrecision = d3.format('.2s');
     static readonly BAR_THICKNESS = 6;
     drawHistogram() {
         var histogram = d3.histogram().thresholds(this.focusedDataScale.ticks(20));
@@ -219,14 +219,14 @@ class MapUI {
     }
 
     // pay attention to this - doubling up scales!
-    getColor(d: LandProperty) {
+    getColor = (d: LandProperty) => {
         var val = this.focusedDataAccessor(d);
         return val ? this.colorScale(this.focusedDataScale(val)) : '#444';
     }
 
-    recolor() {
+    redraw() {
         this.isUpdatingUI = false;
-        this.mapD3.selectAll('polygon').style('fill', this.getColor.bind(this));
+        this.mapD3.selectAll('polygon').style('fill', this.getColor);
         this.drawHistogram();
     }
 
@@ -246,7 +246,7 @@ class MapUI {
         }
         this.mapD3.selectAll('polygon').filter(isFilterZone).style('display', isActive ? 'none' : null);
         this.updateFocusedData();
-        this.recolor();
+        this.redraw();
     }
     
     /** Get a new set of focused data based on the given accessor */
@@ -266,7 +266,7 @@ class MapUI {
         this.focusedDataScale = scale.
             domain(this.focusedDataScale.domain()).
             range(this.focusedDataScale.range());
-        if (!this.isUpdatingUI) this.recolor();
+        if (!this.isUpdatingUI) this.redraw();
     }
     
     /* THINK I NEED TO TRACK SCALE RANGE FOR COLOR PURPOSES */
@@ -282,7 +282,7 @@ class MapUI {
         this.colorInterpolator = d3.interpolateRgbBasis(scaleRange);
         $('#simple').click();
         $('#'+scaleType).click();
-        this.recolor();
+        this.redraw();
     }
     
     setValueChangeColor(accessor: (d: LandProperty) => number) {
@@ -291,10 +291,10 @@ class MapUI {
 
     setViridisColor(isViridis: boolean) {
         this.isViridis = isViridis;
-        if (!this.isUpdatingUI) this.recolor();
+        if (!this.isUpdatingUI) this.redraw();
     }
 
-    filterAddress() {
+    filterAddress = () => {
         this.mapD3.selectAll('polygon').style('stroke', null);
         const searchVal = this.searchInput.val().toUpperCase();
         if (!searchVal) return;
