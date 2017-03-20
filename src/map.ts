@@ -1,3 +1,4 @@
+//// <reference path="types.d.ts" />
 // import 'core-js/library/es6/array';
 // import {LandProperty, Zone} from './types';
 // import * as d3 from './d3-bundle';
@@ -33,14 +34,12 @@ interface LandProperty {
     
     geometry: string;
     points?: [number,number][];
-    pointsX?: number[];
-    pointsY?: number[];
     area?: number;
 
     bedrooms: number;
     bathrooms: number;
-    carport: number;
-    garage: number;
+    carport: boolean;
+    garage: boolean;
     storeys: number;
     sales_history: any;
     
@@ -86,6 +85,7 @@ function getZoneColor(d: LandProperty) {
 
 var currencyFormat = d3.format('$,');
 Handlebars.registerHelper('currencyFormat', currencyFormat);
+Handlebars.registerHelper('yesNo', (d: boolean) => d ? 'Yes' : 'No');
 var tooltipTemplate: HandlebarsTemplateDelegate;
 var scaleControls: JQuery;
 
@@ -127,12 +127,8 @@ class MapUI {
 
     isUpdatingUI = false;
 
-    isViridis = false;    
     colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
-    getColorInterpolator = () => {
-        return this.isViridis ? d3.interpolateViridis : this.colorInterpolator;
-    }
-    colorScale = d3.scaleLinear<string, string>().interpolate(this.getColorInterpolator);
+    colorScale = d3.scaleLinear<string, string>();
     
     mapD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
     histogramD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
@@ -156,7 +152,7 @@ class MapUI {
         this.histogramD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
         
-        this.search = $(searchElement);
+        this.search = $(searchElement).on('input', updateAddressFilter);
         this.searchInput = this.search.find('input');
         this.searchIcon = this.search.find('.glyphicon');
     }
@@ -191,7 +187,7 @@ class MapUI {
         this.propertyData = data;
         this.activeData = data;
         this.mapD3.selectAll('polygon').
-            data(data, getIdentity).enter().append('polygon').
+            data(data, (d: LandProperty) => d.oid_evbc_b64).enter().append('polygon').
             on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
 
         this.resize();
@@ -230,7 +226,7 @@ class MapUI {
         this.drawHistogram();
     }
 
-    doZoneColor() {
+    doZoneColor = () => {
         // why do I need to manually set the CSS classes on bootstrap buttons?
         // don't want to be touching buttons in this object
         scaleControls.addClass('disabled').removeClass('active');
@@ -290,7 +286,7 @@ class MapUI {
     }
 
     setViridisColor(isViridis: boolean) {
-        this.isViridis = isViridis;
+        this.colorScale.interpolate(() => isViridis ? d3.interpolateViridis : this.colorInterpolator);
         if (!this.isUpdatingUI) this.redraw();
     }
 
@@ -318,30 +314,6 @@ function getGlyph(before: number, after: number) {
     return 'glyphicon-arrow-' + (after - before > 0 ? 'up' : 'down');
 }
 
-// domain estimated at 980736 units wide, translates to roughly 5300 meters wide
-const METERS_PER_UNIT = 5300 / 980736;
-const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
-function getArea(d: LandProperty) {
-    return Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA;
-}
-var mapUi: MapUI;
-function loadData(data: LandProperty[]) {
-    data.forEach(function(d) {
-        d.points = eval(d.geometry);
-        d.sales_history = eval(d.sales_history);
-        d.zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
-        
-        d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
-        d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
-        d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
-
-        d.area = Math.round(getArea(d));
-    });
-
-    mapUi.setData(data);
-    $('#land-value').click();
-}
-
 var currentYear = new Date().getFullYear();
 function getAge(d: LandProperty) {
     return d.year_built ? currentYear - d.year_built : null;
@@ -364,16 +336,13 @@ function getChangeRatio(current: number, previous: number) {
     return 1;
 }
 
-function getIdentity(d: LandProperty) {
-    return d.oid_evbc_b64;
-}
-
 var filterAddressTimeout: number;
 function updateAddressFilter() {
     clearTimeout(filterAddressTimeout);
     filterAddressTimeout = setTimeout(mapUi.filterAddress, 500);
 }
 
+var mapUi: MapUI;
 $(function() {
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
     scaleControls = $('#scale label, #color label');
@@ -407,5 +376,46 @@ $(function() {
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
     }
-    d3.csv('terrace.csv', loadData);
+
+    // domain estimated at 980736 units wide, translates to roughly 5300 meters wide
+    const METERS_PER_UNIT = 5300 / 980736;
+    const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
+
+    d3.csv('terrace.csv').row(function(r: d3.DSVRowAny) {
+        var d: LandProperty = {
+            oid_evbc_b64: r.oid_evbc_b64,
+            pid: r.pid,
+
+            total_assessed_land: +r.total_assessed_land,
+            total_assessed_building: +r.total_assessed_building,
+            total_assessed_value: +r.total_assessed_value,
+            previous_land: +r.previous_land,
+            previous_building: +r.previous_building,
+            previous_total: +r.previous_total,
+
+            year_built: +r.year_built,
+            address: r.address,
+
+            geometry: r.geometry,
+            points: eval(r.geometry),
+            sales_history: eval(r.sales_history),
+
+            zoning: r.zoning,
+            
+            bedrooms: +r.bedrooms || null,
+            bathrooms: +r.bathrooms || null,
+            carport: !!+r.carport,
+            garage: !!+r.garage,
+            storeys: +r.storeys
+        }
+        d.area = d.points ? Math.round(Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA) : null;
+        d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
+        d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
+        d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
+        d.zone = zones.find(z => z.codes.indexOf(d.zoning) > -1);
+        return d;
+    }).get(function(error, data: LandProperty[]) {
+        mapUi.setData(data);
+        $('#land-value').click();
+    });
 });

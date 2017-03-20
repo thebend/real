@@ -17,7 +17,9 @@ export interface LandProperty {
     address: string;
     
     geometry: string;
-    points?: number[][];
+    points?: [number,number][];
+    pointsX?: number[];
+    pointsY?: number[];
     area?: number;
 
     bedrooms: number;
@@ -26,18 +28,11 @@ export interface LandProperty {
     garage: number;
     storeys: number;
     sales_history: any;
+    
     zoning: string;
+    zone?: Zone;
+
     pid: string;
-}
-
-export interface Coord {
-    x: number;
-    y: number;
-}
-
-export interface Box {
-    x: number[];
-    y: number[];
 }
 
 export interface Zone {
