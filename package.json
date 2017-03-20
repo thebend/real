@@ -14,9 +14,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "ts": "tsc --outfile src/map.js",
-    "lint": "tslint **.ts",
-    "build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y && tsc --outfile build\\map.js"
+    "ts": "tsc -p src",
+    "build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y && tsc -p src --sourceMap --outDir build",
+    "dist": "copy src\\*.html dist\\ /Y && copy src\\*.css dist\\ /Y && tsc -p src"
   },
   "repository": {
     "type": "git",
