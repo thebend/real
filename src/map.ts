@@ -72,12 +72,15 @@ var zones: Zone[] = [
         "color": "slategrey"
     }
 ];
-const color = {
+var color: any = {
     gray: 'rgb(191,191,191)',
     lightgray: 'rgb(211,211,211)',
     green: 'rgb(0,191,0)',
     red: 'rgb(191,0,0)'
 }
+color.goodBad = [color.green, color.gray];
+color.badGood = [color.gray, color.green];
+color.posNeg = [color.red, color.gray, color.green];
 
 function getZoneColor(d: LandProperty) {
     return d.zone ? d.zone.color : color.gray;
@@ -174,7 +177,7 @@ class MapUI {
      * Redraw the map, to be called after a resize event or after zooming.
      * @param domain - the specific extent of the backing data we want to render
      */
-    resize(domain?: Domain) {
+    resize = (domain?: Domain) => {
         domain = domain || MapUI.getDomain(this.activeData);
         var range = this.mapD3.node().getBoundingClientRect();
         domain.scaleToRatio(range.height / range.width);
@@ -214,7 +217,6 @@ class MapUI {
             text(d => MapUI.legendPrecision(d.x0) + '-' + MapUI.legendPrecision(d.x1));
     }
 
-    // pay attention to this - doubling up scales!
     getColor = (d: LandProperty) => {
         var val = this.focusedDataAccessor(d);
         return val ? this.colorScale(this.focusedDataScale(val)) : '#444';
@@ -250,30 +252,24 @@ class MapUI {
         if (accessor) this.focusedDataAccessor = accessor;
         this.focusedData = this.activeData.map(this.focusedDataAccessor);
         var domain = d3.extent(this.focusedData);
-        if (this.focusedDataScale.range().length == 3) domain = [domain[0], 1, domain[1]];
-        this.focusedDataScale.domain(domain);
+        var multiRange = this.focusedDataScale.range().length == 3;
+        this.focusedDataScale.domain(multiRange ? [domain[0], 1, domain[1]] : domain);
     }
     
     /**
      * Replace scale with a new one using the same domain and range.
      * Used to change from linear to log scale type.
      */
-    setNewFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
+    setFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
         this.focusedDataScale = scale.
             domain(this.focusedDataScale.domain()).
             range(this.focusedDataScale.range());
         if (!this.isUpdatingUI) this.redraw();
     }
     
-    /* THINK I NEED TO TRACK SCALE RANGE FOR COLOR PURPOSES */
-    setNewColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType?: string) {
+    setColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) {
         this.isUpdatingUI = true;
-        if (scaleRange.length == 3) {
-            scaleType = 'linear';
-            scaleControls.addClass('disabled');
-        } else {
-            scaleControls.removeClass('disabled');
-        }
+        scaleControls.removeClass('disabled');
         this.updateFocusedData(accessor);
         this.colorInterpolator = d3.interpolateRgbBasis(scaleRange);
         $('#simple').click();
@@ -281,10 +277,6 @@ class MapUI {
         this.redraw();
     }
     
-    setValueChangeColor(accessor: (d: LandProperty) => number) {
-        this.setNewColorParameters(accessor, [color.red, color.gray, color.green]);
-    }
-
     setViridisColor(isViridis: boolean) {
         this.colorScale.interpolate(() => isViridis ? d3.interpolateViridis : this.colorInterpolator);
         if (!this.isUpdatingUI) this.redraw();
@@ -359,19 +351,19 @@ $(function() {
         btn.on('click', () => mapUi.toggleFilter(zone, btn.hasClass('active')));
     });
     const clickActions = {
-        "zoomout":               mapUi.resize,
-        "linear":          () => mapUi.setNewFocusedDataScale(d3.scaleLinear()),
-        "log":             () => mapUi.setNewFocusedDataScale(d3.scaleLog()),
+        "zoomout":         () => mapUi.resize(),
+        "linear":          () => mapUi.setFocusedDataScale(d3.scaleLinear()),
+        "log":             () => mapUi.setFocusedDataScale(d3.scaleLog()),
         "simple":          () => mapUi.setViridisColor(false),
         "viridis":         () => mapUi.setViridisColor(true),
-        "land-value":      () => mapUi.setNewColorParameters(getLandValueDensity, [color.gray, color.green], 'linear'),
-        "age":             () => mapUi.setNewColorParameters(getAge, [color.green, color.gray], 'log'),
-        "total-value":     () => mapUi.setNewColorParameters(d => d.total_assessed_value, [color.gray, color.green], 'log'),
-        "change-building": () => mapUi.setValueChangeColor(d => getChangeRatio(d.total_assessed_building, d.previous_building)),
-        "change-land":     () => mapUi.setValueChangeColor(d => getChangeRatio(d.total_assessed_land, d.previous_land)),
+        "land-value":      () => mapUi.setColorParameters(getLandValueDensity, color.badGood, 'linear'),
+        "age":             () => mapUi.setColorParameters(getAge, color.goodBad, 'log'),
+        "total-value":     () => mapUi.setColorParameters(d => d.total_assessed_value, color.badGood, 'log'),
+        "change-building": () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_building, d.previous_building), color.posNeg, 'log'),
+        "change-land":     () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_land, d.previous_land), color.posNeg, 'linear'),
         "zone-type":             mapUi.doZoneColor,
-        "bedroom":         () => mapUi.setNewColorParameters(d => d.bedrooms, [color.green, color.gray], 'log'),
-        "bathroom":        () => mapUi.setNewColorParameters(d => d.bathrooms, [color.green, color.gray], 'log')
+        "bedroom":         () => mapUi.setColorParameters(d => d.bedrooms, color.goodBad, 'log'),
+        "bathroom":        () => mapUi.setColorParameters(d => d.bathrooms, color.goodBad, 'log')
     }
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
