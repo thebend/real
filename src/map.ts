@@ -139,22 +139,39 @@ class MapUI {
     searchInput: JQuery;
     searchIcon: JQuery;
 
-    mouseDownEvent: any;
+    // zoom click origin
+    x0: number;
+    y0: number;
+    zoomRect: d3.Selection<d3.BaseType,any,HTMLElement,any>;
     zoom = () => {
-        var x0 = this.mouseDownEvent.clientX;
+        this.zoomRect.remove();
         var x1 = d3.event.clientX;
-        var y0 = this.mouseDownEvent.clientY;
         var y1 = d3.event.clientY;
-        var distance = Math.sqrt((x1 - x0)**2 + (y1 - y0)**2);
-        if (distance < MIN_ZOOM_SIZE) return;
-        this.resize(new Domain(
-            [this.xScale.invert(x1), this.xScale.invert(x0)],
-            [this.yScale.invert(y1), this.yScale.invert(y0)]
-        ));
+        var distance = Math.sqrt((x1 - this.x0)**2 + (y1 - this.y0)**2);
+        if (distance >= MIN_ZOOM_SIZE) {
+            this.resize(new Domain(
+                [this.xScale.invert(x1), this.xScale.invert(this.x0)],
+                [this.yScale.invert(y1), this.yScale.invert(this.y0)]
+            ));
+        }
+        this.x0 = undefined;
     }
     constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
         this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
-            on('mousedown', () => this.mouseDownEvent = d3.event).
+            on('mousedown', () => {
+                this.x0 = d3.event.clientX;
+                this.y0 = d3.event.clientY;
+                this.zoomRect = this.mapD3.append('rect').
+                    attr('id', 'zoom-rect');
+            }).
+            on('mousemove', () => {
+                if (!this.x0) return;
+                var x = d3.extent([this.x0, d3.event.clientX]);
+                var y = d3.extent([this.y0, d3.event.clientY]);
+                this.zoomRect.
+                    attr('x', x[0]).attr('width', x[1] - x[0]).
+                    attr('y', y[0]).attr('height', y[1] - y[0]);
+            }).
             on('mouseup', this.zoom);
 
         this.histogramD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
@@ -194,7 +211,7 @@ class MapUI {
     setData(data: LandProperty[]) {
         this.propertyData = data;
         this.activeData = data;
-        this.mapD3.selectAll('polygon').
+        this.mapD3.append('g').attr('id', 'properties').selectAll('polygon').
             data(data, (d: LandProperty) => d.oid_evbc_b64).enter().append('polygon').
             on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
 
