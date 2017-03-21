@@ -116,6 +116,7 @@ class Domain {
     }
 }
 
+const MIN_ZOOM_SIZE = 5;
 class MapUI {
     xScale = d3.scaleLinear();
     yScale = d3.scaleLinear();
@@ -140,9 +141,15 @@ class MapUI {
 
     mouseDownEvent: any;
     zoom = () => {
+        var x0 = this.mouseDownEvent.clientX;
+        var x1 = d3.event.clientX;
+        var y0 = this.mouseDownEvent.clientY;
+        var y1 = d3.event.clientY;
+        var distance = Math.sqrt((x1 - x0)**2 + (y1 - y0)**2);
+        if (distance < MIN_ZOOM_SIZE) return;
         this.resize(new Domain(
-            [this.xScale.invert(this.mouseDownEvent.clientX), this.xScale.invert(d3.event.clientX)],
-            [this.yScale.invert(this.mouseDownEvent.clientY), this.yScale.invert(d3.event.clientY)]
+            [this.xScale.invert(x1), this.xScale.invert(x0)],
+            [this.yScale.invert(y1), this.yScale.invert(y0)]
         ));
     }
     constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
