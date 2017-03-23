@@ -132,6 +132,7 @@ class MapUI {
     colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
     colorScale = d3.scaleLinear<string, string>();
     
+    mapSvg: HTMLElement;
     mapD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
     histogramD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
     tooltip: JQuery;
@@ -144,7 +145,7 @@ class MapUI {
     zoomRect: d3.Selection<d3.BaseType,any,HTMLElement,any>;
     zoom = () => {
         this.zoomRect.remove();
-        var pos1 = d3.mouse(this.mapD3.node());
+        var pos1 = d3.mouse(this.mapSvg);
         var distance = Math.sqrt((pos1[0] - this.pos0[0])**2 + (pos1[1] - this.pos0[1])**2);
         if (distance >= MIN_ZOOM_SIZE) {
             this.resize(new Domain(
@@ -155,15 +156,16 @@ class MapUI {
         this.pos0 = undefined;
     }
     constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
+        this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', () => {
-                this.pos0 = d3.mouse(this.mapD3.node());
+                this.pos0 = d3.mouse(this.mapSvg);
                 this.zoomRect = this.mapD3.append('rect').
                     attr('id', 'zoom-rect');
             }).
             on('mousemove', () => {
                 if (!this.pos0) return;
-                var pos1 = d3.mouse(this.mapD3.node());
+                var pos1 = d3.mouse(this.mapSvg);
                 var x = d3.extent([this.pos0[0], pos1[0]]);
                 var y = d3.extent([this.pos0[1], pos1[1]]);
                 this.zoomRect.
@@ -199,7 +201,7 @@ class MapUI {
      */
     resize = (domain?: Domain) => {
         domain = domain || MapUI.getDomain(this.activeData);
-        var range = this.mapD3.node().getBoundingClientRect();
+        var range = this.mapSvg.getBoundingClientRect();
         domain.scaleToRatio(range.height / range.width);
         this.xScale.domain(domain.x).range([0, range.width]);
         this.yScale.domain(domain.y).range([range.height, 0]);
