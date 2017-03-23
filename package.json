@@ -15,8 +15,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "ts": "tsc -p src",
-    "build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y && tsc -p src --sourceMap --outDir build",
-    "dist": "copy src\\*.html dist\\ /Y && copy src\\*.css dist\\ /Y && tsc -p src"
+    "static": "copy src\\*.html dist\\ /Y && copy src\\*.css dist\\ /Y",
+    "static:build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y",
+    "build": "npm run static:build && tsc -p src --sourceMap --outDir build",
+    "dist": "npm run static && tsc -p src"
   },
   "repository": {
     "type": "git",

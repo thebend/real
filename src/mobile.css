@@ -1,0 +1,111 @@
+html {
+    height: 100%;
+    font-family: Calibri, sans-serif;
+}
+body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+svg {
+    display: block;
+}
+
+#controls {
+    width: 100%;
+    padding: 1em;
+    background-color: #444;
+    flex: 0 0 2em;
+}
+#controls > * {
+    display: inline-block;
+    margin: 0;
+    margin-right: 1em;
+}
+#zones {
+    width: 500px;
+}
+#search {
+    width: 30em;
+    float: left;
+}
+#metric {
+    width: 10em;
+}
+
+#content {
+    display: flex;
+    flex: 1 1 100%;
+}
+
+#zoomout {
+    position: absolute;
+    margin: .2em;
+}
+
+#map {
+    background-color: #ccc;
+    flex: 0 0 70%;
+}
+#map svg {
+    width: 100%;
+    height: 100%;
+}
+#map #zoom-rect {
+    fill: rgba(0, 0, 191, 0.2);
+    border: 2px solid rgba(0, 0, 128, 0.2);
+}
+
+#histogram {
+    background-color: #666;
+    flex: 0 0 10%;
+    padding: 1em;
+}
+#histogram svg {
+    width: 100%;
+    height: 100%;
+    font-family: Verdana, sans-serif;
+    font-size: 10px;
+}
+#histogram rect {
+    fill: gainsboro;
+}
+#histogram text {
+    fill: darkgray;
+}
+
+#tooltip {
+    padding: 1em;
+    font-size: 1.2em;
+    flex: 0 0 20%;
+    background-color: slategray;
+    color: white;
+    flex-grow: 2;
+    overflow-y: auto;
+}
+#address {
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0.3em 0;
+}
+#pid {
+    font-size: 1.1em;
+    text-align: center;
+}
+#tooltip table {
+    width: 100%;
+    margin: 1em;
+}
+#details p {
+    width: 50%;
+    float: left;
+}
+
+.glyphicon-arrow-up {
+    color: darkgreen;
+}
+.glyphicon-arrow-down {
+    color: darkred;
+}

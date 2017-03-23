@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Terrace Data Explorer</title>
+    
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.7.3/d3.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="mobile.css" />
+    <script src="map.js"></script>
+</head>
+
+<body>
+    <section id="controls">
+        <div class="form-group has-feedback" id="search">
+            <div class="input-group input-group-lg">
+                <span class="input-group-addon">Address</span>
+                <input type="search" class="form-control">
+            </div>
+            <span class="glyphicon glyphicon-ok form-control-feedback"></span>
+        </div>
+
+        <div class="btn-group btn-group-lg" data-toggle="buttons" id="scale">
+            <label class="btn btn-default active" id="linear">
+                <input type="radio" name="linear" checked> Linear
+            </label>
+            <label class="btn btn-default" id="log">
+                <input type="radio" name="log"> Logarithmic
+            </label>
+        </div>
+
+        <div class="btn-group btn-group-lg" data-toggle="buttons" id="color">
+            <label class="btn btn-default active" id="simple">
+                <input type="radio" name="simple" checked> Simple Color
+            </label>
+            <label class="btn btn-default" id="viridis">
+                <input type="radio" name="viridis"> Complex Color
+            </label>
+        </div>
+
+        <div class="btn-group btn-group-lg btn-group-justified" data-toggle="buttons" id="zones">
+            <label class="btn btn-default active" id="residential">
+                <input type="checkbox" name="residential" checked> Resid
+            </label>
+            <label class="btn btn-default active" id="commercial">
+                <input type="checkbox" name="commercial" checked> Comm
+            </label>
+            <label class="btn btn-default active" id="industrial">
+                <input type="checkbox" name="industrial" checked> Ind
+            </label>
+            <label class="btn btn-default active" id="agricultural">
+                <input type="checkbox" name="agricultural" checked> Agri
+            </label>
+            <label class="btn btn-default active" id="public">
+                <input type="checkbox" name="public" checked> Public
+            </label>
+        </div>
+
+        <select class="form-control input-lg" name="metric" id="metric">
+            <option value="land-value">Land Value</option>
+            <option value="age">Building Age</option>
+            <option value="total-value">Total $</option>
+            <option value="change-building">&Delta; Buliding $</option>
+            <option value="change-land">&Delta; Land $</option>
+            <option value="zones">Zones</option>
+            <option value="bedroom"># Bedrooms</option>
+            <option value="bathroom"># Bathrooms</option>
+        </select>
+    </section>
+
+    <section id="content">
+        <section id="histogram"><svg></svg></section>
+
+        <section id="map">
+            <button class="btn btn-default" id="zoomout">Zoom Out</button>
+            <svg></svg>
+        </section>
+
+        <script id="tooltip-template" type="text/x-handlebars-template">
+            <h2 id="address">{{ address }}</h2>
+            <p id="pid"><strong>PID:</strong> {{ pid }}</p>
+            <table id="assessed-values">
+                <thead>
+                    <tr><th></th><th>Current</th><th>Previous</th></tr>
+                </thead>
+                <tbody>
+                    <tr><th>Land</th>
+                        <td>{{ currencyFormat total_assessed_land }} <span class="glyphicon {{ land_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_land }}</td>
+                    </tr><tr><th>Building</th>
+                        <td>{{ currencyFormat total_assessed_building }} <span class="glyphicon {{ building_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_building }}</td>
+                    </tr><tr><th>Total</th>
+                        <td>{{ currencyFormat total_assessed_value }} <span class="glyphicon {{ total_glyph }}"></span></td>
+                        <td>{{ currencyFormat previous_total }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <section id="details">
+                <p><strong>Year Built:</strong> {{ year_built }}</p>
+                <p><strong>Zoning:</strong> {{ zoning }}</p>
+                <p><strong>Bedrooms:</strong> {{ bedrooms }}</p>
+                <p><strong>Bathrooms:</strong> {{ bathrooms }}</p>
+                <p><strong>Carport:</strong> {{ yesNo carport }}</p>
+                <p><strong>Garage:</strong> {{ yesNo garage }}</p>
+                <p><strong>Storeys:</strong> {{ storeys }}</p>
+                <p><strong>Area:</strong> {{ area }} m<sup>2</sup></p>
+            </section>
+        </script>
+        <article id="tooltip"></article>
+    </section>
+</body>
+
+</html>

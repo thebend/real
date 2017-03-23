@@ -6,13 +6,11 @@
     
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.7.3/d3.min.js"></script>
-    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-shim.min.js"></script>-->
-    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-sham.min.js"></script>-->
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
     
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="desktop.css" />
     <script src="map.js"></script>
 </head>
 
@@ -24,7 +22,7 @@
 
     <section id="sidebar">
         <section id="controls">
-            <div class="form-group has-success has-feedback" id="search">
+            <div class="form-group has-feedback" id="search">
                 <div class="input-group">
                     <span class="input-group-addon">Address</span>
                     <input type="search" class="form-control">
@@ -33,22 +31,22 @@
             </div>
 
             <div id="scale">
-                <div class="btn-group" data-toggle="buttons">
-                    <label class="btn btn-lg btn-default active" id="linear">
+                <div class="btn-group btn-group-lg" data-toggle="buttons">
+                    <label class="btn btn-default active" id="linear">
                         <input type="radio" name="linear" checked> Linear
                     </label>
-                    <label class="btn btn-lg btn-default" id="log">
+                    <label class="btn btn-default" id="log">
                         <input type="radio" name="log"> Logarithmic
                     </label>
                 </div>
             </div>
 
             <div id="color">
-                <div class="btn-group" data-toggle="buttons">
-                    <label class="btn btn-lg btn-default active" id="simple">
+                <div class="btn-group btn-group-lg" data-toggle="buttons">
+                    <label class="btn btn-default active" id="simple">
                         <input type="radio" name="simple" checked> Simple Color
                     </label>
-                    <label class="btn btn-lg btn-default" id="viridis">
+                    <label class="btn btn-default" id="viridis">
                         <input type="radio" name="viridis"> Complex Color
                     </label>
                 </div>
@@ -74,29 +72,29 @@
                 </div>
             </div>
 
-            <div id="metric" class="btn-group-vertical" data-toggle="buttons">
-                <label class="btn btn-lg btn-default btn-block" id="land-value">
+            <div id="metric" class="btn-group-vertical btn-group-lg" data-toggle="buttons">
+                <label class="btn btn-default btn-block" id="land-value">
                     <input type="radio" name="land-value"> Land Value
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="age">
+                <label class="btn btn-default btn-block" id="age">
                     <input type="radio" name="age"> Building Age
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="total-value">
+                <label class="btn btn-default btn-block" id="total-value">
                     <input type="radio" name="total-value"> Total $
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="change-building">
+                <label class="btn btn-default btn-block" id="change-building">
                     <input type="radio" name="change-building"> &Delta; Building $
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="change-land">
+                <label class="btn btn-default btn-block" id="change-land">
                     <input type="radio" name="change-land"> &Delta; Land $
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="zone-type">
+                <label class="btn btn-default btn-block" id="zone-type">
                     <input type="radio" name="zone-type"> Zones
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="bedroom">
+                <label class="btn btn-default btn-block" id="bedroom">
                     <input type="radio" name="zone-type"> # Bedrooms
                 </label>
-                <label class="btn btn-lg btn-default btn-block" id="bathroom">
+                <label class="btn btn-default btn-block" id="bathroom">
                     <input type="radio" name="zone-type"> # Bathrooms
                 </label>
             </div>
