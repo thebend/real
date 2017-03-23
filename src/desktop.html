@@ -15,7 +15,7 @@
 </head>
 
 <body>
-    <button class="btn btn-default" id="zoomout">Zoom Out</button>
+    <button class="btn btn-default btn-lg" id="zoomout">Zoom Out</button>
     <section id="map"><svg></svg></section>
 
     <section id="histogram"><svg></svg></section>
@@ -33,10 +33,10 @@
             <div id="scale">
                 <div class="btn-group btn-group-lg" data-toggle="buttons">
                     <label class="btn btn-default active" id="linear">
-                        <input type="radio" name="linear" checked> Linear
+                        <input type="radio" name="scale" value="linear" checked> Linear
                     </label>
                     <label class="btn btn-default" id="log">
-                        <input type="radio" name="log"> Logarithmic
+                        <input type="radio" name="scale" value="log"> Logarithmic
                     </label>
                 </div>
             </div>
@@ -44,10 +44,10 @@
             <div id="color">
                 <div class="btn-group btn-group-lg" data-toggle="buttons">
                     <label class="btn btn-default active" id="simple">
-                        <input type="radio" name="simple" checked> Simple Color
+                        <input type="radio" name="color" value="simple" checked> Simple Color
                     </label>
                     <label class="btn btn-default" id="viridis">
-                        <input type="radio" name="viridis"> Complex Color
+                        <input type="radio" name="color" value="viridis"> Complex Color
                     </label>
                 </div>
             </div>
@@ -74,28 +74,28 @@
 
             <div id="metric" class="btn-group-vertical btn-group-lg" data-toggle="buttons">
                 <label class="btn btn-default btn-block" id="land-value">
-                    <input type="radio" name="land-value"> Land Value
+                    <input type="radio" name="metric" value="land-value"> Land Value
                 </label>
                 <label class="btn btn-default btn-block" id="age">
-                    <input type="radio" name="age"> Building Age
+                    <input type="radio" name="metric" value="age"> Building Age
                 </label>
                 <label class="btn btn-default btn-block" id="total-value">
-                    <input type="radio" name="total-value"> Total $
+                    <input type="radio" name="metric" value="total-value"> Total $
                 </label>
                 <label class="btn btn-default btn-block" id="change-building">
-                    <input type="radio" name="change-building"> &Delta; Building $
+                    <input type="radio" name="metric" value="change-building"> &Delta; Building $
                 </label>
                 <label class="btn btn-default btn-block" id="change-land">
-                    <input type="radio" name="change-land"> &Delta; Land $
+                    <input type="radio" name="metric" value="change-land"> &Delta; Land $
                 </label>
                 <label class="btn btn-default btn-block" id="zone-type">
-                    <input type="radio" name="zone-type"> Zones
+                    <input type="radio" name="metric" value="zone-type"> Zones
                 </label>
                 <label class="btn btn-default btn-block" id="bedroom">
-                    <input type="radio" name="zone-type"> # Bedrooms
+                    <input type="radio" name="metric" value="bedroom"> # Bedrooms
                 </label>
                 <label class="btn btn-default btn-block" id="bathroom">
-                    <input type="radio" name="zone-type"> # Bathrooms
+                    <input type="radio" name="metric" value="bathroom"> # Bathrooms
                 </label>
             </div>
         </section>

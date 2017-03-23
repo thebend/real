@@ -282,14 +282,15 @@ class MapUI {
      * Replace scale with a new one using the same domain and range.
      * Used to change from linear to log scale type.
      */
-    setFocusedDataScale(scale: d3.ScaleContinuousNumeric<number, number>) {
+    setLogScale = (isLog: boolean) => {
+        var scale: d3.ScaleContinuousNumeric<number, number> = isLog ? d3.scaleLog() : d3.scaleLinear();
         this.focusedDataScale = scale.
             domain(this.focusedDataScale.domain()).
             range(this.focusedDataScale.range());
         if (!this.isUpdatingUI) this.redraw();
     }
     
-    setColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) {
+    setColorParameters = (accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) => {
         this.isUpdatingUI = true;
         scaleControls.removeClass('disabled');
         this.updateFocusedData(accessor);
@@ -299,7 +300,7 @@ class MapUI {
         this.redraw();
     }
     
-    setViridisColor(isViridis: boolean) {
+    setViridisColor = (isViridis: boolean) => {
         this.colorScale.interpolate(() => isViridis ? d3.interpolateViridis : this.colorInterpolator);
         if (!this.isUpdatingUI) this.redraw();
     }
@@ -374,8 +375,8 @@ $(function() {
     });
     const clickActions = {
         "zoomout":         () => mapUi.resize(),
-        "linear":          () => mapUi.setFocusedDataScale(d3.scaleLinear()),
-        "log":             () => mapUi.setFocusedDataScale(d3.scaleLog()),
+        "linear":          () => mapUi.setLogScale(false),
+        "log":             () => mapUi.setLogScale(true),
         "simple":          () => mapUi.setViridisColor(false),
         "viridis":         () => mapUi.setViridisColor(true),
         "land-value":      () => mapUi.setColorParameters(getLandValueDensity, color.badGood, 'linear'),
@@ -383,7 +384,7 @@ $(function() {
         "total-value":     () => mapUi.setColorParameters(d => d.total_assessed_value, color.badGood, 'log'),
         "change-building": () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_building, d.previous_building), color.posNeg, 'log'),
         "change-land":     () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_land, d.previous_land), color.posNeg, 'linear'),
-        "zone-type":             mapUi.doZoneColor,
+        "zone-type":       () => mapUi.doZoneColor(),
         "bedroom":         () => mapUi.setColorParameters(d => d.bedrooms, color.goodBad, 'log'),
         "bathroom":        () => mapUi.setColorParameters(d => d.bathrooms, color.goodBad, 'log')
     }

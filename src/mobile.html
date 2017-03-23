@@ -26,19 +26,19 @@
 
         <div class="btn-group btn-group-lg" data-toggle="buttons" id="scale">
             <label class="btn btn-default active" id="linear">
-                <input type="radio" name="linear" checked> Linear
+                <input type="radio" name="scale" value="linear" checked> Linear
             </label>
             <label class="btn btn-default" id="log">
-                <input type="radio" name="log"> Logarithmic
+                <input type="radio" name="scale" value="log"> Logarithmic
             </label>
         </div>
 
         <div class="btn-group btn-group-lg" data-toggle="buttons" id="color">
             <label class="btn btn-default active" id="simple">
-                <input type="radio" name="simple" checked> Simple Color
+                <input type="radio" name="color" value="simple" checked> Simple Color
             </label>
             <label class="btn btn-default" id="viridis">
-                <input type="radio" name="viridis"> Complex Color
+                <input type="radio" name="color" value="viridis"> Complex Color
             </label>
         </div>
 
@@ -76,7 +76,7 @@
         <section id="histogram"><svg></svg></section>
 
         <section id="map">
-            <button class="btn btn-default" id="zoomout">Zoom Out</button>
+            <button class="btn btn-default btn-lg" id="zoomout">Zoom Out</button>
             <svg></svg>
         </section>
 
