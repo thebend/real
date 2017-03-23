@@ -140,34 +140,32 @@ class MapUI {
     searchIcon: JQuery;
 
     // zoom click origin
-    x0: number;
-    y0: number;
+    pos0: [number, number];
     zoomRect: d3.Selection<d3.BaseType,any,HTMLElement,any>;
     zoom = () => {
         this.zoomRect.remove();
-        var x1 = d3.event.clientX;
-        var y1 = d3.event.clientY;
-        var distance = Math.sqrt((x1 - this.x0)**2 + (y1 - this.y0)**2);
+        var pos1 = d3.mouse(this.mapD3.node());
+        var distance = Math.sqrt((pos1[0] - this.pos0[0])**2 + (pos1[1] - this.pos0[1])**2);
         if (distance >= MIN_ZOOM_SIZE) {
             this.resize(new Domain(
-                [this.xScale.invert(x1), this.xScale.invert(this.x0)],
-                [this.yScale.invert(y1), this.yScale.invert(this.y0)]
+                [this.xScale.invert(this.pos0[0]), this.xScale.invert(pos1[0])],
+                [this.yScale.invert(this.pos0[1]), this.yScale.invert(pos1[1])]
             ));
         }
-        this.x0 = undefined;
+        this.pos0 = undefined;
     }
     constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
         this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', () => {
-                this.x0 = d3.event.clientX;
-                this.y0 = d3.event.clientY;
+                this.pos0 = d3.mouse(this.mapD3.node());
                 this.zoomRect = this.mapD3.append('rect').
                     attr('id', 'zoom-rect');
             }).
             on('mousemove', () => {
-                if (!this.x0) return;
-                var x = d3.extent([this.x0, d3.event.clientX]);
-                var y = d3.extent([this.y0, d3.event.clientY]);
+                if (!this.pos0) return;
+                var pos1 = d3.mouse(this.mapD3.node());
+                var x = d3.extent([this.pos0[0], pos1[0]]);
+                var y = d3.extent([this.pos0[1], pos1[1]]);
                 this.zoomRect.
                     attr('x', x[0]).attr('width', x[1] - x[0]).
                     attr('y', y[0]).attr('height', y[1] - y[0]);
@@ -357,6 +355,49 @@ function updateAddressFilter() {
     filterAddressTimeout = setTimeout(mapUi.filterAddress, 500);
 }
 
+// domain estimated at 980736 units wide, translates to roughly 5300 meters wide
+const METERS_PER_UNIT = 5300 / 980736;
+const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
+
+function cleanLandPropertyRow(r: d3.DSVRowAny) {
+    var d: LandProperty = {
+        oid_evbc_b64: r.oid_evbc_b64,
+        pid: r.pid,
+
+        total_assessed_land: +r.total_assessed_land,
+        total_assessed_building: +r.total_assessed_building,
+        total_assessed_value: +r.total_assessed_value,
+        previous_land: +r.previous_land,
+        previous_building: +r.previous_building,
+        previous_total: +r.previous_total,
+
+        year_built: +r.year_built,
+        address: r.address,
+
+        geometry: r.geometry,
+        points: eval(r.geometry),
+        sales_history: eval(r.sales_history),
+
+        zoning: r.zoning,
+        
+        bedrooms: +r.bedrooms || null,
+        bathrooms: +r.bathrooms || null,
+        carport: !!+r.carport,
+        garage: !!+r.garage,
+        storeys: +r.storeys
+    }
+    d.area = d.points ? Math.round(Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA) : null;
+    d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
+    d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
+    d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
+    d.zone = zones.find(z => z.codes.includes(d.zoning));
+    return d;
+}
+
+// MUST DECOUPLE UI FROM MAP JS
+// - tooltipTemplate should be part of Map JavaScript
+// - scaleControls should not be shared by mapUI and external interface - set up hooks for updates?
+// - hate passing element references to MapUI.  Just make it jQuery-dependent??
 var mapUi: MapUI;
 $(function() {
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
@@ -392,44 +433,7 @@ $(function() {
         $('#'+key).on('click', clickActions[key]);
     }
 
-    // domain estimated at 980736 units wide, translates to roughly 5300 meters wide
-    const METERS_PER_UNIT = 5300 / 980736;
-    const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
-
-    d3.csv('terrace.csv').row(function(r: d3.DSVRowAny) {
-        var d: LandProperty = {
-            oid_evbc_b64: r.oid_evbc_b64,
-            pid: r.pid,
-
-            total_assessed_land: +r.total_assessed_land,
-            total_assessed_building: +r.total_assessed_building,
-            total_assessed_value: +r.total_assessed_value,
-            previous_land: +r.previous_land,
-            previous_building: +r.previous_building,
-            previous_total: +r.previous_total,
-
-            year_built: +r.year_built,
-            address: r.address,
-
-            geometry: r.geometry,
-            points: eval(r.geometry),
-            sales_history: eval(r.sales_history),
-
-            zoning: r.zoning,
-            
-            bedrooms: +r.bedrooms || null,
-            bathrooms: +r.bathrooms || null,
-            carport: !!+r.carport,
-            garage: !!+r.garage,
-            storeys: +r.storeys
-        }
-        d.area = d.points ? Math.round(Math.abs(d3.polygonArea(d.points)) * METERS_PER_UNIT_AREA) : null;
-        d.land_glyph = getGlyph(d.previous_land, d.total_assessed_land);
-        d.building_glyph = getGlyph(d.previous_building, d.total_assessed_building);
-        d.total_glyph = getGlyph(d.previous_total, d.total_assessed_value);
-        d.zone = zones.find(z => z.codes.includes(d.zoning));
-        return d;
-    }).get(function(error, data: LandProperty[]) {
+    d3.csv('terrace.csv').row(cleanLandPropertyRow).get(function(error, data: LandProperty[]) {
         mapUi.setData(data);
         $('#land-value').click();
     });
