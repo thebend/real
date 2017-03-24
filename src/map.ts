@@ -18,8 +18,8 @@ interface Shape {
 }
 interface ColorParameters {
     accessor?: (d: Shape) => number,
-    scale?: string,
     colorRange?: string[],
+    scale?: string,
     viridis?: boolean
 }
 interface LandProperty extends Shape {
@@ -400,17 +400,21 @@ var search: JQuery;
 var searchInput: JQuery;
 var searchIcon: JQuery;
 
-function setColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) {
+function setColorParameters(params: ColorParameters) {
     scaleControls.removeClass('disabled');
-    $('#simple').click();
-    $('#'+scaleType).click();
-    mapUi.recolor({
-        accessor: accessor,
-        scale: scaleType,
-        colorRange: scaleRange
-    });
+    if ('viridis' in params) {
+        var scale = params.viridis ? 'viridis' : 'simple';
+        var otherScale = params.viridis ? 'simple' : 'viridis';
+        $('#'+scale).addClass('active');
+        $('#'+otherScale).removeClass('active');
+    }
+    if ('scale' in params) {
+        var otherScale = params.scale == 'linear' ? 'log' : 'linear';
+        $('#'+params.scale).addClass('active');
+        $('#'+otherScale).removeClass('active');
+    }
+    mapUi.recolor(params);
 }
-
 
 $(function() {
     scaleControls = $('#scale label, #color label');
@@ -436,26 +440,26 @@ $(function() {
     });
     const clickActions = {
         "zoomout":         () => mapUi.resize(),
-        "linear":          () => mapUi.recolor({scale: 'linear'}),
-        "log":             () => mapUi.recolor({scale: 'log'}),
-        "simple":          () => mapUi.recolor({viridis: false}),
-        "viridis":         () => mapUi.recolor({viridis: true}),
-        "land-value":      () => mapUi.recolor({accessor: getLandValueDensity, colorRange: color.badGood, scale: 'linear'}),
-        "age":             () => mapUi.recolor({accessor: getAge, colorRange: color.goodBad, scale: 'log'}),
-        "total-value":     () => mapUi.recolor({accessor: (d: LandProperty) => d.total_assessed_value, colorRange: color.goodBad, scale: 'log'}),
-        "change-building": () => mapUi.recolor({
+        "linear":          () => setColorParameters({scale: 'linear'}),
+        "log":             () => setColorParameters({scale: 'log'}),
+        "simple":          () => setColorParameters({viridis: false}),
+        "viridis":         () => setColorParameters({viridis: true}),
+        "land-value":      () => setColorParameters({accessor: getLandValueDensity, colorRange: color.badGood, scale: 'linear'}),
+        "age":             () => setColorParameters({accessor: getAge, colorRange: color.goodBad, scale: 'log'}),
+        "total-value":     () => setColorParameters({accessor: (d: LandProperty) => d.total_assessed_value, colorRange: color.goodBad, scale: 'log'}),
+        "change-building": () => setColorParameters({
             accessor: (d: LandProperty) => getChangeRatio(d.total_assessed_building, d.previous_building),
             colorRange: color.posNeg,
             scale: 'log'
         }),
-        "change-land": () => mapUi.recolor({
+        "change-land": () => setColorParameters({
             accessor: (d: LandProperty) => getChangeRatio(d.total_assessed_land, d.previous_land),
             colorRange: color.posNeg,
             scale: 'linear'
         }),
         "zone-type":       () => doZoneColor(),
-        "bedroom":         () => mapUi.recolor({accessor: (d: LandProperty) => d.bedrooms, colorRange: color.goodBad, scale: 'log'}),
-        "bathroom":        () => mapUi.recolor({accessor: (d: LandProperty) => d.bathrooms, colorRange: color.goodBad, scale: 'log'})
+        "bedroom":         () => setColorParameters({accessor: (d: LandProperty) => d.bedrooms, colorRange: color.goodBad, scale: 'log'}),
+        "bathroom":        () => setColorParameters({accessor: (d: LandProperty) => d.bathrooms, colorRange: color.goodBad, scale: 'log'})
     }
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
