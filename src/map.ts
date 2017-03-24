@@ -12,7 +12,12 @@ interface Zone {
     codes: string[];
     color: string;
 }
-interface LandProperty {
+interface Shape {
+    id: any;
+    points: [number, number][];
+}
+interface LandProperty extends Shape {
+    id: any;
     oid_evbc_b64: string;
     
     total_assessed_value: number;
@@ -31,7 +36,7 @@ interface LandProperty {
     address: string;
     
     geometry: string;
-    points?: [number,number][];
+    points: [number,number][];
     area?: number;
 
     bedrooms: number;
@@ -117,13 +122,13 @@ class Domain {
 }
 
 const MIN_ZOOM_SIZE = 5;
-class MapUI {
+class MapUI<T extends Shape> {
     xScale = d3.scaleLinear();
     yScale = d3.scaleLinear();
 
-    propertyData: LandProperty[]; // all available property data
-    activeData: LandProperty[]; // data that has not currently been filtered
-    focusedDataAccessor: (record: LandProperty) => number;
+    allData: T[];
+    activeData: T[]; // data that has not currently been filtered out
+    focusedDataAccessor: (record: T) => number;
     focusedData: number[]; // the specific attribute actively being analyzed
     focusedDataScale: d3.ScaleContinuousNumeric<number, number> = d3.scaleLinear<number, number>();
 
@@ -133,12 +138,9 @@ class MapUI {
     colorScale = d3.scaleLinear<string, string>();
     
     mapSvg: HTMLElement;
-    mapD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
-    histogramD3: d3.Selection<HTMLElement,LandProperty,HTMLElement,any>;
+    mapD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
+    histogramD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
     tooltip: JQuery;
-    search: JQuery;
-    searchInput: JQuery;
-    searchIcon: JQuery;
 
     // zoom click origin
     pos0: [number, number];
@@ -155,9 +157,9 @@ class MapUI {
         }
         this.pos0 = undefined;
     }
-    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, searchElement: HTMLElement) {
+    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement) {
         this.mapSvg = mapElement;
-        this.mapD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(mapElement).
+        this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', () => {
                 this.pos0 = d3.mouse(this.mapSvg);
                 this.zoomRect = this.mapD3.append('rect').
@@ -174,23 +176,19 @@ class MapUI {
             }).
             on('mouseup', this.zoom);
 
-        this.histogramD3 = <d3.Selection<HTMLElement,LandProperty,HTMLElement,any>>d3.select(histogramElement);
+        this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
-        
-        this.search = $(searchElement).on('input', updateAddressFilter);
-        this.searchInput = this.search.find('input');
-        this.searchIcon = this.search.find('.glyphicon');
     }
 
     scaledPointString = (point: [number,number]): string => {
         return this.xScale(point[0])+','+this.yScale(point[1]);
     }
     /** Return a string in "1,2 3,4 5,6" format from a property's points array */
-    getPointString = (d: LandProperty): string => {
+    getPointString = (d: T): string => {
         return d.points.map(this.scaledPointString).join(' ');
     }
 
-    static getDomain(data: LandProperty[]): Domain {
+    static getDomain(data: Shape[]): Domain {
         var points = d3.merge(data.map(p => p.points));
         return new Domain(d3.extent(points, p => p[0]), d3.extent(points, p => p[1]));
     }
@@ -208,11 +206,11 @@ class MapUI {
         this.mapD3.selectAll('polygon').attr('points', this.getPointString);
     }
 
-    setData(data: LandProperty[]) {
-        this.propertyData = data;
+    setData(data: T[]) {
+        this.allData = data;
         this.activeData = data;
         this.mapD3.append('g').attr('id', 'properties').selectAll('polygon').
-            data(data, (d: LandProperty) => d.oid_evbc_b64).enter().append('polygon').
+            data(data, (d: T) => d.id).enter().append('polygon').
             on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
 
         this.resize();
@@ -239,7 +237,7 @@ class MapUI {
             text(d => MapUI.legendPrecision(d.x0) + '-' + MapUI.legendPrecision(d.x1));
     }
 
-    getColor = (d: LandProperty) => {
+    getColor = (d: T) => {
         var val = this.focusedDataAccessor(d);
         return val ? this.colorScale(this.focusedDataScale(val)) : '#444';
     }
@@ -257,20 +255,19 @@ class MapUI {
         this.mapD3.selectAll('polygon').style('fill', getZoneColor);
     }
 
-    toggleFilter(zone: string, isActive: boolean) {
-        function isFilterZone(d: LandProperty) { return d.zone && d.zone.type == zone; }
-        if (isActive) {
-            this.activeData = this.activeData.concat(this.propertyData.filter(isFilterZone));
+    toggleFilter(filter: (d: T) => boolean, enable: boolean) {
+        if (enable) {
+            this.activeData = this.activeData.concat(this.allData.filter(filter));
         } else {
-            this.activeData = this.activeData.filter(d => !isFilterZone(d));
+            this.activeData = this.activeData.filter(d => !filter(d));
         }
-        this.mapD3.selectAll('polygon').filter(isFilterZone).style('display', isActive ? 'none' : null);
+        this.mapD3.selectAll('polygon').filter(filter).style('display', enable ? 'none' : null);
         this.updateFocusedData();
         this.redraw();
     }
     
     /** Get a new set of focused data based on the given accessor */
-    updateFocusedData(accessor?: (d: LandProperty) => number) {
+    updateFocusedData(accessor?: (d: T) => number) {
         if (accessor) this.focusedDataAccessor = accessor;
         this.focusedData = this.activeData.map(this.focusedDataAccessor);
         var domain = d3.extent(this.focusedData);
@@ -290,7 +287,7 @@ class MapUI {
         if (!this.isUpdatingUI) this.redraw();
     }
     
-    setColorParameters = (accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) => {
+    setColorParameters = (accessor: (d: T) => number, scaleRange: string[], scaleType: string) => {
         this.isUpdatingUI = true;
         scaleControls.removeClass('disabled');
         this.updateFocusedData(accessor);
@@ -305,23 +302,12 @@ class MapUI {
         if (!this.isUpdatingUI) this.redraw();
     }
 
-    filterAddress = () => {
-        this.mapD3.selectAll('polygon').style('stroke', null);
-        const searchVal = this.searchInput.val().toUpperCase();
-        if (!searchVal) return;
-    
-        function hasMatchingAddress(d: LandProperty) {
-            return d.address.indexOf(searchVal) > -1;
-        }
-        var isMatch = this.mapD3.selectAll('polygon').
-            filter(hasMatchingAddress).style('stroke', 'white').size() > 0;
-
-        this.search.
-            addClass(isMatch ? 'has-success' : 'has-error').
-            removeClass(isMatch ? 'has-error' : 'has-success');
-        this.searchIcon.
-            addClass(isMatch ? 'glyphicon-ok' : 'glyphicon-remove').
-            removeClass(isMatch ? 'glyphicon-remove' : 'glyphicon-ok');
+    highlight = (filter: (d: T) => boolean) => {
+        return this.mapD3.selectAll('polygon').
+            style('stroke', null).
+            filter(filter).
+            style('stroke', 'white').
+            size();
     }
 }
 
@@ -354,7 +340,18 @@ function getChangeRatio(current: number, previous: number) {
 var filterAddressTimeout: number;
 function updateAddressFilter() {
     clearTimeout(filterAddressTimeout);
-    filterAddressTimeout = setTimeout(mapUi.filterAddress, 500);
+    filterAddressTimeout = setTimeout(filterAddress, 500);
+}
+function filterAddress() {
+    const searchVal = searchInput.val().toUpperCase();
+    if (!searchVal) return;
+    var hasMatches = mapUi.highlight((d: LandProperty) => d.address.indexOf(searchVal) > -1) > 0;
+    search.
+        addClass(hasMatches ? 'has-success' : 'has-error').
+        removeClass(hasMatches ? 'has-error' : 'has-success');
+    searchIcon.
+        addClass(hasMatches ? 'glyphicon-ok' : 'glyphicon-remove').
+        removeClass(hasMatches ? 'glyphicon-remove' : 'glyphicon-ok');
 }
 
 // domain estimated at 980736 units wide, translates to roughly 5300 meters wide
@@ -363,6 +360,7 @@ const METERS_PER_UNIT_AREA = METERS_PER_UNIT**2;
 
 function cleanLandPropertyRow(r: d3.DSVRowAny) {
     var d: LandProperty = {
+        id: r.oid_evbc_b64,
         oid_evbc_b64: r.oid_evbc_b64,
         pid: r.pid,
 
@@ -395,26 +393,37 @@ function cleanLandPropertyRow(r: d3.DSVRowAny) {
     d.zone = zones.find(z => z.codes.includes(d.zoning));
     return d;
 }
-
 // MUST DECOUPLE UI FROM MAP JS
 // - tooltipTemplate should be part of Map JavaScript
 // - scaleControls should not be shared by mapUI and external interface - set up hooks for updates?
 // - hate passing element references to MapUI.  Just make it jQuery-dependent??
-var mapUi: MapUI;
+var mapUi: MapUI<LandProperty>;
+
+var search: JQuery;
+var searchInput: JQuery;
+var searchIcon: JQuery;
+
 $(function() {
     tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
     scaleControls = $('#scale label, #color label');
-    mapUi = new MapUI(
+    
+    search = $('#search').on('input', updateAddressFilter);
+    searchInput = search.find('input');
+    searchIcon = search.find('.glyphicon');
+    
+    mapUi = new MapUI<LandProperty>(
         $('#map svg')[0],
         $('#histogram svg')[0],
-        document.getElementById('tooltip'),
-        document.getElementById('search')
+        document.getElementById('tooltip')
     );
 
     // configure UI events
     ['residential','commercial','industrial','agricultural','public'].forEach(function(zone) {
         var btn = $('#'+zone);
-        btn.on('click', () => mapUi.toggleFilter(zone, btn.hasClass('active')));
+        btn.on('click', () => mapUi.toggleFilter(
+            (d: LandProperty) => d.zone && d.zone.type == zone,
+            btn.hasClass('active')
+        ));
     });
     const clickActions = {
         "zoomout":         () => mapUi.resize(),
