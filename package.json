@@ -17,8 +17,10 @@
     "ts": "tsc -p src",
     "static": "copy src\\*.html dist\\ /Y && copy src\\*.css dist\\ /Y",
     "static:build": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y",
-    "build": "npm run static:build && tsc -p src --sourceMap --outDir build",
-    "dist": "npm run static && tsc -p src"
+    "build": "npm run static:build && tsc --project src --sourceMap --outDir build",
+    "dist": "npm run static && tsc --project src",
+    "watch": "tsc --project src --watch",
+    "watch:build": "tsc --project src --watch --sourceMap --outDir build"
   },
   "repository": {
     "type": "git",

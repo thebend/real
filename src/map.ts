@@ -189,7 +189,8 @@ class MapUI<T extends Shape> {
 
         this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
-        this.tooltipTemplate = tooltipTemplate
+        this.tooltipTemplate = tooltipTemplate;
+        this.setViridisColor(false);
     }
 
     scaledPointString = (point: [number,number]): string => {
