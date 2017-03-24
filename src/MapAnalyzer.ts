@@ -22,6 +22,7 @@ class MapAnalyzer<T extends Shape> {
     mapSvg: HTMLElement;
     mapD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
     histogramD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
+    histogramOrientation: string;
     
     tooltip: JQuery;
     tooltipTemplate: HandlebarsTemplateDelegate;
@@ -41,7 +42,13 @@ class MapAnalyzer<T extends Shape> {
         }
         this.pos0 = undefined;
     }
-    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, tooltipTemplate: HandlebarsTemplateDelegate) {
+    constructor(
+        mapElement: HTMLElement,
+        histogramElement: HTMLElement,
+        histogramOrientation: string,
+        tooltipElement: HTMLElement,
+        tooltipTemplate: HandlebarsTemplateDelegate
+    ) {
         this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', () => {
@@ -62,6 +69,7 @@ class MapAnalyzer<T extends Shape> {
         this.mapD3.append('g').attr('id', 'properties');
 
         this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
+        this.histogramOrientation = histogramOrientation;
         this.tooltip = $(tooltipElement);
         this.tooltipTemplate = tooltipTemplate;
         this.setViridisColor(false);
@@ -106,20 +114,49 @@ class MapAnalyzer<T extends Shape> {
     drawHistogram() {
         var histogram = d3.histogram().thresholds(this.focusedDataScale.ticks(20));
         var bins = histogram(this.focusedData);
+        var maxAmplitude = d3.max(bins, i => i.length);
         var boundary = this.histogramD3.node().getBoundingClientRect();
-        var barAreaHeight = boundary.height / bins.length;
-        var maxSize = d3.max(bins, i => i.length);
+
+        var distributionSpace: number;
+        var amplitudeSpace: number;
+        if (this.histogramOrientation == 'vertical') {
+            distributionSpace = boundary.height;
+            amplitudeSpace = boundary.width;
+        } else {
+            distributionSpace = boundary.width;
+            amplitudeSpace = boundary.height;
+        }
+        var barAreaThickness = distributionSpace / bins.length;
+        var textOffset = barAreaThickness / 2 - (2 * BAR_THICKNESS);
+        var offset = (barAreaThickness - BAR_THICKNESS) / 2;
+        var amplitude = (d) => amplitudeSpace / maxAmplitude * d.length;
+
         this.histogramD3.selectAll('g').remove();
-        var barGroups = this.histogramD3.selectAll('g').data(bins).enter().append('g').
-            attr('transform', (d, i) => 'translate(0,'+(boundary.height / bins.length * i)+')');
-        barGroups.append('rect').
-            attr('width', d => boundary.width / maxSize * d.length).
-            attr('height', BAR_THICKNESS).
-            attr('rx', BAR_THICKNESS / 2).
-            attr('y', (barAreaHeight - BAR_THICKNESS) / 2);
-        barGroups.append('text').
-            attr('y', barAreaHeight / 2 - (2 * BAR_THICKNESS)).
-            text(d => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
+        var barGroups = this.histogramD3.selectAll('g').data(bins).enter().append('g');
+        if (this.histogramOrientation == 'vertical') {
+            barGroups.
+                attr('transform', (d, i) => 'translate(0,'+(barAreaThickness * i)+')').
+                append('rect').
+                    attr('width', amplitude).
+                    attr('height', BAR_THICKNESS).
+                    attr('rx', BAR_THICKNESS / 2).
+                    attr('y', offset);
+            barGroups.append('text').
+                attr('y', textOffset);
+        } else {
+            barGroups.
+                attr('transform', (d, i) => 'translate('+(barAreaThickness * i)+',0)').
+                append('rect').
+                    attr('width', BAR_THICKNESS).
+                    attr('height', amplitude).
+                    attr('x', offset).
+                    attr('y', (d) => amplitudeSpace - amplitude(d)).
+                    attr('ry', BAR_THICKNESS / 2);
+            barGroups.append('text').
+                attr('transform','translate('+textOffset+','+amplitudeSpace+')rotate(270)');
+        }
+        barGroups.selectAll('text').
+            text((d: d3.Bin<number, number>) => legendPrecision(d.x0) + '-' + legendPrecision(d.x1));
     }
 
     getColor = (d: T) => {

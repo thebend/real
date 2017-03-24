@@ -13,30 +13,33 @@ svg {
 }
 
 #controls {
-    width: 100%;
     padding: 1em;
     background-color: #444;
-    flex: 0 0 2em;
+    overflow-y: auto;
 }
-#controls > * {
-    display: inline-block;
-    margin: 0;
-    margin-right: 1em;
-}
+#scale,
+#color,
 #zones {
-    width: 500px;
-}
-#search {
-    width: 30em;
-    float: left;
-}
-#metric {
-    width: 10em;
+    margin: 1em 0;
+    width: 100%;
 }
 
 #content {
     display: flex;
-    flex: 1 1 100%;
+    flex-direction: column;
+    height: 100%;
+}
+#content header {
+    flex: 0 0 auto;
+}
+#content header {
+    display: flex;
+}
+#content header button {
+    flex: 0 0 auto;
+}
+#content header select {
+    flex: 1 1 auto;
 }
 
 #zoomout {
@@ -46,7 +49,7 @@ svg {
 
 #map {
     background-color: #ccc;
-    flex: 0 0 70%;
+    flex: 1 1 60%;
 }
 #map svg {
     width: 100%;
@@ -78,7 +81,7 @@ svg {
 #tooltip {
     padding: 1em;
     font-size: 1.2em;
-    flex: 0 0 20%;
+    flex: 0 0 15em;
     background-color: slategray;
     color: white;
     flex-grow: 2;
@@ -94,13 +97,24 @@ svg {
     font-size: 1.1em;
     text-align: center;
 }
-#tooltip table {
+#facts {
     width: 100%;
-    margin: 1em;
+    display: flex;
+}
+#assessed-values {
+    flex: 0 0 50%;
+}
+#assessed-values table {
+    width: 100%;
+}
+#details {
+    flex: 0 0 50%;
 }
 #details p {
     width: 50%;
-    float: left;
+    display: inline-block;
+    margin: 0;
+    line-height: 1.5em;
 }
 
 .glyphicon-arrow-up {

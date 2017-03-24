@@ -100,6 +100,7 @@ $(function() {
     mapUi = new MapAnalyzer<LandProperty>(
         $('#map svg')[0],
         $('#histogram svg')[0],
+        'horizontal',
         document.getElementById('tooltip'),
         Handlebars.compile($('#tooltip-template').html())
     );

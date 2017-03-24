@@ -25,36 +25,16 @@
 </head>
 
 <body>
-    <nav id="menu">
-      <h2>Menu</h2>
-    </nav>
-
-    <main id="panel">
-      <header>
-        <button class="toggle-button">☰</button>
-        <h2>Panel</h2>
-      </header>
-    </main>
-    
-    <script>
-        var slideout = new Slideout({
-            panel: document.getElementById('panel'),
-            menu: document.getElementById('menu'),
-            padding: 256,
-            tolerance: 70
-        });
-    </script>
-
     <section id="controls">
         <div class="form-group has-feedback" id="search">
             <div class="input-group input-group-lg">
-                <span class="input-group-addon">Address</span>
+                <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
                 <input type="search" class="form-control">
             </div>
             <span class="glyphicon glyphicon-ok form-control-feedback"></span>
         </div>
 
-        <div class="btn-group btn-group-lg" data-toggle="buttons" id="scale">
+        <div class="btn-group-vertical btn-group-lg" data-toggle="buttons" id="scale">
             <label class="btn btn-default active" id="linear">
                 <input type="radio" name="scale" value="linear" checked> Linear
             </label>
@@ -63,7 +43,7 @@
             </label>
         </div>
 
-        <div class="btn-group btn-group-lg" data-toggle="buttons" id="color">
+        <div class="btn-group-vertical btn-group-lg" data-toggle="buttons" id="color">
             <label class="btn btn-default active" id="simple">
                 <input type="radio" name="color" value="simple" checked> Simple Color
             </label>
@@ -72,38 +52,39 @@
             </label>
         </div>
 
-        <div class="btn-group btn-group-lg btn-group-justified" data-toggle="buttons" id="zones">
+        <div class="btn-group-vertical btn-group-lg" data-toggle="buttons" id="zones">
             <label class="btn btn-default active" id="residential">
-                <input type="checkbox" name="residential" checked> Resid
+                <input type="checkbox" name="residential" checked> Residential
             </label>
             <label class="btn btn-default active" id="commercial">
-                <input type="checkbox" name="commercial" checked> Comm
+                <input type="checkbox" name="commercial" checked> Commercial
             </label>
             <label class="btn btn-default active" id="industrial">
-                <input type="checkbox" name="industrial" checked> Ind
+                <input type="checkbox" name="industrial" checked> Industrial
             </label>
             <label class="btn btn-default active" id="agricultural">
-                <input type="checkbox" name="agricultural" checked> Agri
+                <input type="checkbox" name="agricultural" checked> Agricultural
             </label>
             <label class="btn btn-default active" id="public">
                 <input type="checkbox" name="public" checked> Public
             </label>
         </div>
-
-        <select class="form-control input-lg" name="metric" id="metric">
-            <option value="land-value">Land Value</option>
-            <option value="age">Building Age</option>
-            <option value="total-value">Total $</option>
-            <option value="change-building">&Delta; Buliding $</option>
-            <option value="change-land">&Delta; Land $</option>
-            <option value="zones">Zones</option>
-            <option value="bedroom"># Bedrooms</option>
-            <option value="bathroom"># Bathrooms</option>
-        </select>
     </section>
 
-    <section id="content">
-        <section id="histogram"><svg></svg></section>
+    <main id="content">
+        <header>
+            <button class="toggle-button">☰</button>
+            <select class="form-control input-lg" name="metric" id="metric">
+                <option value="land-value">Land Value</option>
+                <option value="age">Building Age</option>
+                <option value="total-value">Total $</option>
+                <option value="change-building">&Delta; Buliding $</option>
+                <option value="change-land">&Delta; Land $</option>
+                <option value="zones">Zones</option>
+                <option value="bedroom"># Bedrooms</option>
+                <option value="bathroom"># Bathrooms</option>
+            </select>
+        </header>
 
         <section id="map">
             <button class="btn btn-default btn-lg" id="zoomout">Zoom Out</button>
@@ -113,36 +94,52 @@
         <script id="tooltip-template" type="text/x-handlebars-template">
             <h2 id="address">{{ address }}</h2>
             <p id="pid"><strong>PID:</strong> {{ pid }}</p>
-            <table id="assessed-values">
-                <thead>
-                    <tr><th></th><th>Current</th><th>Previous</th></tr>
-                </thead>
-                <tbody>
-                    <tr><th>Land</th>
-                        <td>{{ currencyFormat total_assessed_land }} <span class="glyphicon {{ land_glyph }}"></span></td>
-                        <td>{{ currencyFormat previous_land }}</td>
-                    </tr><tr><th>Building</th>
-                        <td>{{ currencyFormat total_assessed_building }} <span class="glyphicon {{ building_glyph }}"></span></td>
-                        <td>{{ currencyFormat previous_building }}</td>
-                    </tr><tr><th>Total</th>
-                        <td>{{ currencyFormat total_assessed_value }} <span class="glyphicon {{ total_glyph }}"></span></td>
-                        <td>{{ currencyFormat previous_total }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <section id="details">
-                <p><strong>Year Built:</strong> {{ year_built }}</p>
-                <p><strong>Zoning:</strong> {{ zoning }}</p>
-                <p><strong>Bedrooms:</strong> {{ bedrooms }}</p>
-                <p><strong>Bathrooms:</strong> {{ bathrooms }}</p>
-                <p><strong>Carport:</strong> {{ yesNo carport }}</p>
-                <p><strong>Garage:</strong> {{ yesNo garage }}</p>
-                <p><strong>Storeys:</strong> {{ storeys }}</p>
-                <p><strong>Area:</strong> {{ area }} m<sup>2</sup></p>
+            <section id="facts">
+                <section id="assessed-values"><table>
+                    <thead>
+                        <tr><th></th><th>Current</th><th>Previous</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><th>Land</th>
+                            <td>{{ currencyFormat total_assessed_land }} <span class="glyphicon {{ land_glyph }}"></span></td>
+                            <td>{{ currencyFormat previous_land }}</td>
+                        </tr><tr><th>Building</th>
+                            <td>{{ currencyFormat total_assessed_building }} <span class="glyphicon {{ building_glyph }}"></span></td>
+                            <td>{{ currencyFormat previous_building }}</td>
+                        </tr><tr><th>Total</th>
+                            <td>{{ currencyFormat total_assessed_value }} <span class="glyphicon {{ total_glyph }}"></span></td>
+                            <td>{{ currencyFormat previous_total }}</td>
+                        </tr>
+                    </tbody>
+                </table></section>
+                <section id="details">
+                    <p><strong>Year Built:</strong> {{ year_built }}</p>
+                    <p><strong>Zoning:</strong> {{ zoning }}</p>
+                    <p><strong>Bedrooms:</strong> {{ bedrooms }}</p>
+                    <p><strong>Bathrooms:</strong> {{ bathrooms }}</p>
+                    <p><strong>Carport:</strong> {{ yesNo carport }}</p>
+                    <p><strong>Garage:</strong> {{ yesNo garage }}</p>
+                    <p><strong>Storeys:</strong> {{ storeys }}</p>
+                    <p><strong>Area:</strong> {{ area }} m<sup>2</sup></p>
+                </section>
             </section>
         </script>
         <article id="tooltip"></article>
-    </section>
+
+        <section id="histogram"><svg></svg></section>
+    </main>
 </body>
+
+<script>
+    var slideout = new Slideout({
+        panel: document.getElementById('content'),
+        menu: document.getElementById('controls'),
+        padding: 256,
+        tolerance: 70
+    });
+    document.querySelector('.toggle-button').addEventListener('click', function() {
+        slideout.toggle();
+    });
+</script>
 
 </html>
