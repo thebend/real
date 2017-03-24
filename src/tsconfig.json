@@ -5,8 +5,5 @@
         "noImplicitAny": false,
         "sourceMap": false,
         "outDir": "../dist"
-    },
-    "files": [
-        "map.ts"
-    ]
+    }
 }

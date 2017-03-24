@@ -7,14 +7,44 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.7.3/d3.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
     
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+
+    
+    <script src="//cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+    <link rel="stylesheet" href="slideout.css" />
+
     <link rel="stylesheet" href="mobile.css" />
-    <script src="map.js"></script>
+
+    <script src="polyfills.js"></script>
+    <script src="types.js"></script>
+    <script src="LandProperty.js"></script>
+    <script src="MapAnalyzer.js"></script>
+    <script src="mapui.js"></script>
 </head>
 
 <body>
+    <nav id="menu">
+      <h2>Menu</h2>
+    </nav>
+
+    <main id="panel">
+      <header>
+        <button class="toggle-button">☰</button>
+        <h2>Panel</h2>
+      </header>
+    </main>
+    
+    <script>
+        var slideout = new Slideout({
+            panel: document.getElementById('panel'),
+            menu: document.getElementById('menu'),
+            padding: 256,
+            tolerance: 70
+        });
+    </script>
+
     <section id="controls">
         <div class="form-group has-feedback" id="search">
             <div class="input-group input-group-lg">
