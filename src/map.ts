@@ -16,6 +16,12 @@ interface Shape {
     id: any;
     points: [number, number][];
 }
+interface ColorParameters {
+    accessor?: (d: Shape) => number,
+    scale?: string,
+    colorRange?: string[],
+    viridis?: boolean
+}
 interface LandProperty extends Shape {
     id: any;
     oid_evbc_b64: string;
@@ -89,10 +95,14 @@ function getZoneColor(d: LandProperty) {
     return d.zone ? d.zone.color : color.gray;
 }
 
+function doZoneColor() {
+    scaleControls.addClass('disabled').removeClass('active');
+    mapUi.mapD3.selectAll('polygon').style('fill', getZoneColor);
+}
+
 var currencyFormat = d3.format('$,');
 Handlebars.registerHelper('currencyFormat', currencyFormat);
 Handlebars.registerHelper('yesNo', (d: boolean) => d ? 'Yes' : 'No');
-var tooltipTemplate: HandlebarsTemplateDelegate;
 var scaleControls: JQuery;
 
 class Domain {
@@ -132,15 +142,15 @@ class MapUI<T extends Shape> {
     focusedData: number[]; // the specific attribute actively being analyzed
     focusedDataScale: d3.ScaleContinuousNumeric<number, number> = d3.scaleLinear<number, number>();
 
-    isUpdatingUI = false;
-
     colorInterpolator: (t: number) => string = d3.interpolateRgbBasis([color.gray, color.green]);
     colorScale = d3.scaleLinear<string, string>();
     
     mapSvg: HTMLElement;
     mapD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
     histogramD3: d3.Selection<HTMLElement,T,HTMLElement,any>;
+    
     tooltip: JQuery;
+    tooltipTemplate: HandlebarsTemplateDelegate;
 
     // zoom click origin
     pos0: [number, number];
@@ -157,7 +167,7 @@ class MapUI<T extends Shape> {
         }
         this.pos0 = undefined;
     }
-    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement) {
+    constructor(mapElement: HTMLElement, histogramElement: HTMLElement, tooltipElement: HTMLElement, tooltipTemplate: HandlebarsTemplateDelegate) {
         this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
             on('mousedown', () => {
@@ -175,9 +185,11 @@ class MapUI<T extends Shape> {
                     attr('y', y[0]).attr('height', y[1] - y[0]);
             }).
             on('mouseup', this.zoom);
+        this.mapD3.append('g').attr('id', 'properties');
 
         this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
         this.tooltip = $(tooltipElement);
+        this.tooltipTemplate = tooltipTemplate
     }
 
     scaledPointString = (point: [number,number]): string => {
@@ -209,9 +221,9 @@ class MapUI<T extends Shape> {
     setData(data: T[]) {
         this.allData = data;
         this.activeData = data;
-        this.mapD3.append('g').attr('id', 'properties').selectAll('polygon').
+        this.mapD3.select('#properties').selectAll('polygon').
             data(data, (d: T) => d.id).enter().append('polygon').
-            on('mouseover', d => this.tooltip.html(tooltipTemplate(d)));
+            on('mouseover', d => this.tooltip.html(this.tooltipTemplate(d)));
 
         this.resize();
     }
@@ -239,20 +251,12 @@ class MapUI<T extends Shape> {
 
     getColor = (d: T) => {
         var val = this.focusedDataAccessor(d);
-        return val ? this.colorScale(this.focusedDataScale(val)) : '#444';
+        return val == null ? '#444' : this.colorScale(this.focusedDataScale(val));
     }
 
     redraw() {
-        this.isUpdatingUI = false;
         this.mapD3.selectAll('polygon').style('fill', this.getColor);
         this.drawHistogram();
-    }
-
-    doZoneColor = () => {
-        // why do I need to manually set the CSS classes on bootstrap buttons?
-        // don't want to be touching buttons in this object
-        scaleControls.addClass('disabled').removeClass('active');
-        this.mapD3.selectAll('polygon').style('fill', getZoneColor);
     }
 
     toggleFilter(filter: (d: T) => boolean, enable: boolean) {
@@ -284,24 +288,20 @@ class MapUI<T extends Shape> {
         this.focusedDataScale = scale.
             domain(this.focusedDataScale.domain()).
             range(this.focusedDataScale.range());
-        if (!this.isUpdatingUI) this.redraw();
     }
-    
-    setColorParameters = (accessor: (d: T) => number, scaleRange: string[], scaleType: string) => {
-        this.isUpdatingUI = true;
-        scaleControls.removeClass('disabled');
-        this.updateFocusedData(accessor);
-        this.colorInterpolator = d3.interpolateRgbBasis(scaleRange);
-        $('#simple').click();
-        $('#'+scaleType).click();
+
+    setViridisColor = (isViridis: boolean) => {
+        this.colorScale.interpolate(() => isViridis ? d3.interpolateViridis : this.colorInterpolator);
+    }
+
+    recolor = (parameters: ColorParameters) => {
+        if ('accessor' in parameters) this.updateFocusedData(parameters.accessor);
+        if ('scale' in parameters) this.setLogScale(parameters.scale == 'log');
+        if ('colorRange' in parameters) this.colorInterpolator = d3.interpolateRgbBasis(parameters.colorRange);
+        if ('viridis' in parameters) this.setViridisColor(parameters.viridis);
         this.redraw();
     }
     
-    setViridisColor = (isViridis: boolean) => {
-        this.colorScale.interpolate(() => isViridis ? d3.interpolateViridis : this.colorInterpolator);
-        if (!this.isUpdatingUI) this.redraw();
-    }
-
     highlight = (filter: (d: T) => boolean) => {
         return this.mapD3.selectAll('polygon').
             style('stroke', null).
@@ -393,18 +393,26 @@ function cleanLandPropertyRow(r: d3.DSVRowAny) {
     d.zone = zones.find(z => z.codes.includes(d.zoning));
     return d;
 }
-// MUST DECOUPLE UI FROM MAP JS
-// - tooltipTemplate should be part of Map JavaScript
-// - scaleControls should not be shared by mapUI and external interface - set up hooks for updates?
-// - hate passing element references to MapUI.  Just make it jQuery-dependent??
+
 var mapUi: MapUI<LandProperty>;
 
 var search: JQuery;
 var searchInput: JQuery;
 var searchIcon: JQuery;
 
+function setColorParameters(accessor: (d: LandProperty) => number, scaleRange: string[], scaleType: string) {
+    scaleControls.removeClass('disabled');
+    $('#simple').click();
+    $('#'+scaleType).click();
+    mapUi.recolor({
+        accessor: accessor,
+        scale: scaleType,
+        colorRange: scaleRange
+    });
+}
+
+
 $(function() {
-    tooltipTemplate = Handlebars.compile($('#tooltip-template').html());
     scaleControls = $('#scale label, #color label');
     
     search = $('#search').on('input', updateAddressFilter);
@@ -414,7 +422,8 @@ $(function() {
     mapUi = new MapUI<LandProperty>(
         $('#map svg')[0],
         $('#histogram svg')[0],
-        document.getElementById('tooltip')
+        document.getElementById('tooltip'),
+        Handlebars.compile($('#tooltip-template').html())
     );
 
     // configure UI events
@@ -427,18 +436,26 @@ $(function() {
     });
     const clickActions = {
         "zoomout":         () => mapUi.resize(),
-        "linear":          () => mapUi.setLogScale(false),
-        "log":             () => mapUi.setLogScale(true),
-        "simple":          () => mapUi.setViridisColor(false),
-        "viridis":         () => mapUi.setViridisColor(true),
-        "land-value":      () => mapUi.setColorParameters(getLandValueDensity, color.badGood, 'linear'),
-        "age":             () => mapUi.setColorParameters(getAge, color.goodBad, 'log'),
-        "total-value":     () => mapUi.setColorParameters(d => d.total_assessed_value, color.badGood, 'log'),
-        "change-building": () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_building, d.previous_building), color.posNeg, 'log'),
-        "change-land":     () => mapUi.setColorParameters(d => getChangeRatio(d.total_assessed_land, d.previous_land), color.posNeg, 'linear'),
-        "zone-type":       () => mapUi.doZoneColor(),
-        "bedroom":         () => mapUi.setColorParameters(d => d.bedrooms, color.goodBad, 'log'),
-        "bathroom":        () => mapUi.setColorParameters(d => d.bathrooms, color.goodBad, 'log')
+        "linear":          () => mapUi.recolor({scale: 'linear'}),
+        "log":             () => mapUi.recolor({scale: 'log'}),
+        "simple":          () => mapUi.recolor({viridis: false}),
+        "viridis":         () => mapUi.recolor({viridis: true}),
+        "land-value":      () => mapUi.recolor({accessor: getLandValueDensity, colorRange: color.badGood, scale: 'linear'}),
+        "age":             () => mapUi.recolor({accessor: getAge, colorRange: color.goodBad, scale: 'log'}),
+        "total-value":     () => mapUi.recolor({accessor: (d: LandProperty) => d.total_assessed_value, colorRange: color.goodBad, scale: 'log'}),
+        "change-building": () => mapUi.recolor({
+            accessor: (d: LandProperty) => getChangeRatio(d.total_assessed_building, d.previous_building),
+            colorRange: color.posNeg,
+            scale: 'log'
+        }),
+        "change-land": () => mapUi.recolor({
+            accessor: (d: LandProperty) => getChangeRatio(d.total_assessed_land, d.previous_land),
+            colorRange: color.posNeg,
+            scale: 'linear'
+        }),
+        "zone-type":       () => doZoneColor(),
+        "bedroom":         () => mapUi.recolor({accessor: (d: LandProperty) => d.bedrooms, colorRange: color.goodBad, scale: 'log'}),
+        "bathroom":        () => mapUi.recolor({accessor: (d: LandProperty) => d.bathrooms, colorRange: color.goodBad, scale: 'log'})
     }
     for (var key in clickActions) {
         $('#'+key).on('click', clickActions[key]);
