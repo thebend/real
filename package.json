@@ -20,7 +20,9 @@
     "build": "npm run build:static && tsc --project src --sourceMap --outDir build",
     "dist": "npm run dist:static && tsc --project src",
     "watch": "tsc --project src --watch",
-    "watch:build": "tsc --project src --watch --sourceMap --outDir build"
+    "watch:build": "tsc --project src --watch --sourceMap --outDir build",
+    "clean": "del dist /s /q && copy src\\terrace.csv dist",
+    "clean:build": "del build /s /q && copy src\\terrace.csv build"
   },
   "repository": {
     "type": "git",

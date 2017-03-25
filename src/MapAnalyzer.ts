@@ -51,22 +51,25 @@ class MapAnalyzer<T extends Shape> {
     ) {
         this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
-            on('mousedown', () => {
-                this.pos0 = d3.mouse(this.mapSvg);
-                this.zoomRect = this.mapD3.append('rect').
-                    attr('id', 'zoom-rect');
-            }).
-            on('mousemove', () => {
-                if (!this.pos0) return;
-                var pos1 = d3.mouse(this.mapSvg);
-                var x = d3.extent([this.pos0[0], pos1[0]]);
-                var y = d3.extent([this.pos0[1], pos1[1]]);
-                this.zoomRect.
-                    attr('x', x[0]).attr('width', x[1] - x[0]).
-                    attr('y', y[0]).attr('height', y[1] - y[0]);
-            }).
-            on('mouseup', this.zoom);
-        this.mapD3.append('g').attr('id', 'properties');
+            append('g').attr('id', 'properties').
+            // on('mousedown', () => {
+            //     this.pos0 = d3.mouse(this.mapSvg);
+            //     this.zoomRect = this.mapD3.append('rect').
+            //         attr('id', 'zoom-rect');
+            // }).
+            // on('mousemove', () => {
+            //     if (!this.pos0) return;
+            //     var pos1 = d3.mouse(this.mapSvg);
+            //     var x = d3.extent([this.pos0[0], pos1[0]]);
+            //     var y = d3.extent([this.pos0[1], pos1[1]]);
+            //     this.zoomRect.
+            //         attr('x', x[0]).attr('width', x[1] - x[0]).
+            //         attr('y', y[0]).attr('height', y[1] - y[0]);
+            // }).
+            // on('mouseup', this.zoom).
+            call(d3.zoom<HTMLElement, T>().on('zoom', () => {
+                this.mapD3.attr("transform", d3.event.transform);
+            }));
 
         this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
         this.histogramOrientation = histogramOrientation;
@@ -104,7 +107,7 @@ class MapAnalyzer<T extends Shape> {
     setData(data: T[]) {
         this.allData = data;
         this.activeData = data;
-        this.mapD3.select('#properties').selectAll('polygon').
+        this.mapD3.selectAll('polygon').
             data(data, (d: T) => d.id).enter().append('polygon').
             on('mouseover', d => this.tooltip.html(this.tooltipTemplate(d)));
 
