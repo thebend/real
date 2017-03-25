@@ -51,7 +51,6 @@ class MapAnalyzer<T extends Shape> {
     ) {
         this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
-            append('g').attr('id', 'properties').
             // on('mousedown', () => {
             //     this.pos0 = d3.mouse(this.mapSvg);
             //     this.zoomRect = this.mapD3.append('rect').
@@ -69,7 +68,8 @@ class MapAnalyzer<T extends Shape> {
             // on('mouseup', this.zoom).
             call(d3.zoom<HTMLElement, T>().on('zoom', () => {
                 this.mapD3.attr("transform", d3.event.transform);
-            }));
+            })).
+            append('g').attr('id', 'properties');
 
         this.histogramD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(histogramElement);
         this.histogramOrientation = histogramOrientation;
