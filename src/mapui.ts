@@ -101,7 +101,7 @@ $(function() {
         $('#map svg')[0],
         $('#histogram svg')[0],
         'vertical',
-        document.getElementById('tooltip'),
+        document.getElementById('tooltip-content'),
         Handlebars.compile($('#tooltip-template').html())
     );
 

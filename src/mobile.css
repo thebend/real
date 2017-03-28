@@ -88,12 +88,13 @@ svg {
 }
 
 #tooltip {
-    padding: 1em;
+    padding: 0 1em 1em 1em;
     font-size: 1.2em;
     flex: 0 0 15em;
     background-color: slategray;
     color: white;
-    flex-grow: 2;
+    /*flex-grow: 2;*/
+    transition-duration: 0.5s;
     overflow-y: auto;
 }
 #address {
@@ -115,6 +116,12 @@ svg {
     line-height: 1.5em;
     display: block;
     float: left;
+}
+
+#hide-tooltip {
+    color: white;
+    display: block;
+    text-align: center;
 }
 
 .glyphicon-arrow-up {

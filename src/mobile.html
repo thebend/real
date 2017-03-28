@@ -74,7 +74,8 @@
 
     <main id="content">
         <header>
-            <button id="toggle-nav">&#9776;</button>
+            <!--<button id="toggle-nav">&#9776;</button>-->
+            <button id="toggle-nav"><span class="glyphicon glyphicon-menu-hamburger"></span></button>
             <select class="form-control input-lg" name="metric" id="metric">
                 <option value="land-value">Land Value</option>
                 <option value="age">Building Age</option>
@@ -85,7 +86,7 @@
                 <option value="bedroom"># Bedrooms</option>
                 <option value="bathroom"># Bathrooms</option>
             </select>
-            <button id="toggle-histogram">&#9776;</button>
+            <button id="toggle-histogram"><span class="glyphicon glyphicon-stats"></span></button>
         </header>
 
         <section id="map">
@@ -125,7 +126,10 @@
                 </section>
             </section>
         </script>
-        <article id="tooltip"></article>
+        <article id="tooltip">
+            <a href="#" id="hide-tooltip"><span class="glyphicon glyphicon-chevron-down"></span></a>
+            <section id="tooltip-content"></section>
+        </article>
     </main>
     
     <section id="histogram"><svg></svg></section>
@@ -142,8 +146,10 @@
     var histogram = new Slideout({
         panel: document.getElementById('content'),
         menu: document.getElementById('histogram'),
+        // padding: 191,
         padding: 256,
         tolerance: 70,
+        touch: false,
         side: 'right'
     });
     nav.on('beforeopen', function() {
@@ -162,6 +168,13 @@
     // histogram panel must be render before placeholder histogram renders, or nothing will display
     histogram.toggle();
     histogram.toggle();
+
+    $('#map').on('click touch', function() {
+        $('#tooltip').css('flex', '0 0 15em');
+    });
+    $('#hide-tooltip').on('click', function() {
+        $('#tooltip').css('flex', '0 0 0');
+    });
 </script>
 
 </html>
