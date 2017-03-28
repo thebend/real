@@ -114,7 +114,6 @@ $(function() {
         ));
     });
     const clickActions = {
-        "zoomout":         () => mapUi.resize(),
         "linear":          () => setColorParameters({scale: 'linear'}),
         "log":             () => setColorParameters({scale: 'log'}),
         "simple":          () => setColorParameters({viridis: false}),

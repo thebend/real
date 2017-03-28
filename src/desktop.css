@@ -14,12 +14,6 @@ svg {
     display: block;
 }
 
-#zoomout {
-    position: fixed;
-    top: .2em;
-    left: .2em;
-}
-
 #map {
     background-color: #ccc;
     flex-grow: 7;
@@ -27,10 +21,6 @@ svg {
 #map svg {
     width: 100%;
     height: 100%;
-}
-#map #zoom-rect {
-    fill: rgba(0, 0, 191, 0.2);
-    border: 2px solid rgba(0, 0, 128, 0.2);
 }
 
 #histogram {

@@ -27,21 +27,6 @@ class MapAnalyzer<T extends Shape> {
     tooltip: JQuery;
     tooltipTemplate: HandlebarsTemplateDelegate;
 
-    // zoom click origin
-    pos0: [number, number];
-    zoomRect: d3.Selection<d3.BaseType,any,HTMLElement,any>;
-    zoom = () => {
-        this.zoomRect.remove();
-        var pos1 = d3.mouse(this.mapSvg);
-        var distance = Math.sqrt((pos1[0] - this.pos0[0])**2 + (pos1[1] - this.pos0[1])**2);
-        if (distance >= MIN_ZOOM_SIZE) {
-            this.resize(new Domain(
-                [this.xScale.invert(this.pos0[0]), this.xScale.invert(pos1[0])],
-                [this.yScale.invert(this.pos0[1]), this.yScale.invert(pos1[1])]
-            ));
-        }
-        this.pos0 = undefined;
-    }
     constructor(
         mapElement: HTMLElement,
         histogramElement: HTMLElement,
@@ -51,21 +36,6 @@ class MapAnalyzer<T extends Shape> {
     ) {
         this.mapSvg = mapElement;
         this.mapD3 = <d3.Selection<HTMLElement,T,HTMLElement,any>>d3.select(mapElement).
-            // on('mousedown', () => {
-            //     this.pos0 = d3.mouse(this.mapSvg);
-            //     this.zoomRect = this.mapD3.append('rect').
-            //         attr('id', 'zoom-rect');
-            // }).
-            // on('mousemove', () => {
-            //     if (!this.pos0) return;
-            //     var pos1 = d3.mouse(this.mapSvg);
-            //     var x = d3.extent([this.pos0[0], pos1[0]]);
-            //     var y = d3.extent([this.pos0[1], pos1[1]]);
-            //     this.zoomRect.
-            //         attr('x', x[0]).attr('width', x[1] - x[0]).
-            //         attr('y', y[0]).attr('height', y[1] - y[0]);
-            // }).
-            // on('mouseup', this.zoom).
             call(d3.zoom<HTMLElement, T>().on('zoom', () => {
                 this.mapD3.attr("transform", d3.event.transform);
             })).
@@ -92,8 +62,8 @@ class MapAnalyzer<T extends Shape> {
     }
 
     /**
-     * Redraw the map, to be called after a resize event or after zooming.
-     * @param domain - the specific extent of the backing data we want to render
+     * Redraw the map to fit the available range.
+     * @param domain - the extent of the backing data we want to render
      */
     resize = (domain?: Domain) => {
         domain = domain || MapAnalyzer.getDomain(this.activeData);
