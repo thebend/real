@@ -1,45 +1,70 @@
 {
-  "name": "bd-estate",
-  "version": "1.0.0",
-  "description": "Real estate visualizer in D3 for the Terrace, British Columbia area",
-  "main": "src/index.html",
-  "dependencies": {},
-  "devDependencies": {
-    "@types/d3": "^4.7.0",
-    "@types/handlebars": "^4.0.32",
-    "@types/jquery": "^2.0.41",
-    "ts-loader": "^2.0.1",
-    "typescript": "^2.2.1",
-    "webpack": "^2.2.1"
+  "name": "real",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@material-ui/core": "^4.11.3",
+    "@material-ui/icons": "^4.11.2",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@turf/turf": "^6.3.0",
+    "axios": "^0.21.1",
+    "clsx": "^1.1.1",
+    "d3-array": "^2.11.0",
+    "d3-dsv": "^2.0.0",
+    "d3-format": "^2.0.0",
+    "d3-interpolate": "^2.0.1",
+    "d3-polygon": "^2.0.0",
+    "d3-scale": "^3.2.3",
+    "d3-scale-chromatic": "^2.0.0",
+    "deck.gl": "^8.3.15",
+    "proj4": "^2.7.0",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "react-map-gl": "^6.1.1",
+    "react-scripts": "4.0.1",
+    "typescript": "^4.0.3",
+    "web-vitals": "^0.2.4"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "ts": "tsc -p src",
-    "dist:static": "copy src\\*.html dist\\ /Y && copy src\\*.css dist\\ /Y",
-    "build:static": "copy src\\*.html build\\ /Y && copy src\\*.css build\\ /Y",
-    "build": "npm run build:static && tsc --project src --sourceMap --outDir build",
-    "dist": "npm run dist:static && tsc --project src",
-    "watch": "tsc --project src --watch",
-    "watch:build": "tsc --project src --watch --sourceMap --outDir build",
-    "clean": "del dist /s /q && copy src\\terrace.csv dist",
-    "clean:build": "del build /s /q && copy src\\terrace.csv build"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/thebend/bd-estate.git"
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
   },
-  "keywords": [
-    "real",
-    "estate",
-    "d3",
-    "terrace",
-    "british",
-    "columbia"
-  ],
-  "author": "Benjamin Davidson",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/thebend/bd-estate/issues"
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
-  "homepage": "https://github.com/thebend/bd-estate#readme"
+  "devDependencies": {
+    "@danmarshall/deckgl-typings": "^4.5.1",
+    "@types/d3-array": "^2.9.0",
+    "@types/d3-dsv": "^2.0.1",
+    "@types/d3-format": "^2.0.0",
+    "@types/d3-interpolate": "^2.0.0",
+    "@types/d3-polygon": "^2.0.0",
+    "@types/d3-scale": "^3.2.2",
+    "@types/d3-scale-chromatic": "^2.0.0",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.0.0",
+    "@types/proj4": "^2.5.0",
+    "@types/react": "^16.9.53",
+    "@types/react-dom": "^16.9.8",
+    "@types/react-map-gl": "^5.2.9"
+  }
 }
